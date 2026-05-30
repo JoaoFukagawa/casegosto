@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Send, AlertTriangle, Bot, User as UserIcon, Plus } from "lucide-react";
+import { Trash2, Send, AlertTriangle, Bot, User as UserIcon, Plus, Mic, MicOff } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import StatsCard from "@/components/StatsCard";
@@ -66,7 +66,31 @@ export default function AssistenteFinanceiro() {
   const [form, setForm] = useState({ nome: "", valor: "", categoria: "Moradia", due_date: format(new Date(), "yyyy-MM-dd") });
   const [meta, setMeta] = useState<number>(() => Number(localStorage.getItem("meta_mensal") ?? META_PADRAO));
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [recording, setRecording] = useState(false);
 
+  function startVoice() {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error("Seu navegador não suporta reconhecimento de voz");
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = "pt-BR";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.start();
+    setRecording(true);
+    recognition.onresult = (e: any) => {
+      const text = e.results[0][0].transcript;
+      setInput(text);
+      setRecording(false);
+    };
+    recognition.onerror = () => {
+      toast.error("Erro ao capturar voz. Tente novamente.");
+      setRecording(false);
+    };
+    recognition.onend = () => setRecording(false);
+  }
   // Receita do mês (orders)
   const { data: receitaMes = 0 } = useQuery({
     queryKey: ["assistente-receita-mes"],
@@ -382,9 +406,20 @@ export default function AssistenteFinanceiro() {
               rows={2}
               className="resize-none"
             />
-            <Button onClick={() => sendMessage()} disabled={loading || !input.trim()} className="self-end">
-              <Send className="h-4 w-4 mr-1" /> Enviar
-            </Button>
+            <div className="flex flex-col gap-2 self-end">
+              <Button
+                variant={recording ? "destructive" : "outline"}
+                size="icon"
+                onClick={startVoice}
+                disabled={loading}
+                title={recording ? "Ouvindo..." : "Falar por voz"}
+              >
+                {recording ? <MicOff className="h-4 w-4 animate-pulse" /> : <Mic className="h-4 w-4" />}
+              </Button>
+              <Button onClick={() => sendMessage()} disabled={loading || !input.trim()}>
+                <Send className="h-4 w-4 mr-1" /> Enviar
+              </Button>
+            </div>
           </div>
         </TabsContent>
 

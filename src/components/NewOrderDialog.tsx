@@ -45,6 +45,19 @@ export default function NewOrderDialog() {
   const [deliveryTime, setDeliveryTime] = useState("");
   const queryClient = useQueryClient();
 
+const { data: pratosAnteriores } = useQuery({
+    queryKey: ["pratos_anteriores"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("pratos")
+        .select("nome_prato")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      const unicos = Array.from(new Set((data || []).map((p: any) => p.nome_prato as string)));
+      return unicos;
+    },
+  });
+
   const { data: clientes } = useQuery({
     queryKey: ["clientes"],
     queryFn: async () => {
@@ -418,9 +431,18 @@ export default function NewOrderDialog() {
             <Input
               id="prato-do-dia"
               value={pratoDoDia}
+              list="pratos-anteriores"
               onChange={(e) => setPratoDoDia(e.target.value)}
               placeholder="Ex: Frango grelhado com arroz e feijão"
             />
+            <datalist id="pratos-anteriores">
+              {pratosAnteriores?.map((nome: string, i: number) => (
+                <option key={i} value={nome} />
+              ))}
+            </datalist>
+            {pratoDoDia && pratosAnteriores?.includes(pratoDoDia.trim()) && (
+              <p className="text-xs text-success mt-1">✅ Prato já cadastrado — será agrupado no ranking</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
