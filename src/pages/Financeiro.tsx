@@ -143,18 +143,34 @@ export default function Financeiro() {
       return (order[billRealStatus(a)] - order[billRealStatus(b)]) || ((a.due_date ?? "") > (b.due_date ?? "") ? 1 : -1);
     });
 
-  const markBillPaid = useMutation({
+ const markBillPaid = useMutation({
     mutationFn: async (id: string) => {
+      const bill = allBills.find((b) => b.id === id);
       const { error } = await supabase
         .from("bills" as any)
         .update({ status: "paga", paid_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
+
+      // Lança automaticamente como despesa do mês
+      if (bill) {
+        const { data: u } = await supabase.auth.getUser();
+        if (u.user) {
+          await supabase.from("expenses").insert({
+            description: bill.nome,
+            category: "outros",
+            amount: Number(bill.valor),
+            expense_date: format(new Date(), "yyyy-MM-dd"),
+            user_id: u.user.id,
+          });
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["financeiro-bills"] });
       queryClient.invalidateQueries({ queryKey: ["bills"] });
-      toast.success("Conta marcada como paga ✓");
+      queryClient.invalidateQueries({ queryKey: ["financeiro-expenses-month"] });
+      toast.success("Conta marcada como paga e lançada nas despesas ✓");
     },
     onError: () => toast.error("Erro ao dar baixa"),
   });
