@@ -1,0 +1,1 @@
+ALTER TABLE public.menu_items ADD COLUMN stock_by_unit boolean NOT NULL DEFAULT false;

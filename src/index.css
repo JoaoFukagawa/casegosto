@@ -1,0 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 30 50% 98%;
+    --foreground: 20 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 20 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 25% 15%;
+
+    --primary: 24 80% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 45 90% 55%;
+    --secondary-foreground: 20 25% 15%;
+
+    --muted: 30 30% 93%;
+    --muted-foreground: 20 10% 45%;
+
+    --accent: 145 45% 42%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 30 20% 88%;
+    --input: 30 20% 88%;
+    --ring: 24 80% 50%;
+
+    --radius: 0.75rem;
+
+    --warning: 45 93% 47%;
+    --warning-foreground: 20 25% 15%;
+
+    --success: 145 45% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --info: 210 70% 55%;
+    --info-foreground: 0 0% 100%;
+
+    --sidebar-background: 25 35% 95%;
+    --sidebar-foreground: 20 25% 25%;
+    --sidebar-primary: 24 80% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 30 40% 90%;
+    --sidebar-accent-foreground: 20 25% 15%;
+    --sidebar-border: 30 20% 88%;
+    --sidebar-ring: 24 80% 50%;
+
+    --font-heading: 'Nunito', sans-serif;
+    --font-body: 'Inter', sans-serif;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+}
+
+@layer utilities {
+  .gradient-warm {
+    background: linear-gradient(135deg, hsl(24, 80%, 50%), hsl(35, 90%, 55%));
+  }
+
+  .gradient-warm-subtle {
+    background: linear-gradient(135deg, hsl(30, 50%, 98%), hsl(35, 60%, 95%));
+  }
+
+  .shadow-warm {
+    box-shadow: 0 4px 20px -4px hsl(24 80% 50% / 0.15);
+  }
+
+  .shadow-warm-lg {
+    box-shadow: 0 10px 40px -8px hsl(24 80% 50% / 0.2);
+  }
+}
