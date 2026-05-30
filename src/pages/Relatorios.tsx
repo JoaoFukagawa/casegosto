@@ -66,8 +66,8 @@ export default function Relatorios() {
 
       // Busca todos os clientes
       const { data: clientes, error: errClientes } = await supabase
-        .from("customers")
-        .select("id, name, phone");
+        .from("clientes")
+        .select("id, nome, telefone");
       if (errClientes) throw errClientes;
 
       // Busca o último pedido de cada cliente
@@ -88,7 +88,9 @@ export default function Relatorios() {
       // Filtra clientes que não compram há X dias ou nunca compraram
       return (clientes || [])
         .map((c) => ({
-          ...c,
+          id: c.id,
+          name: c.nome,
+          phone: c.telefone,
           ultimaCompra: ultimoPedido[c.id] || null,
           diasSemComprar: ultimoPedido[c.id]
             ? differenceInDays(today, new Date(ultimoPedido[c.id]))
