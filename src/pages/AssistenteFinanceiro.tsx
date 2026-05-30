@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Send, AlertTriangle, Bot, User as UserIcon, Plus, Mic, MicOff } from "lucide-react";
+import { Trash2, Send, AlertTriangle, Bot, User as UserIcon, Plus, Mic, MicOff, Radio } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import StatsCard from "@/components/StatsCard";
@@ -68,8 +68,83 @@ export default function AssistenteFinanceiro() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [recording, setRecording] = useState(false);
 
-  function startVoice() {
+   const [wakeWordAtivo, setWakeWordAtivo] = useState(false);
+  const wakeRecognitionRef = useRef<any>(null);
+
+  function startWakeWord() {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error("Seu navegador não suporta reconhecimento de voz");
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = "pt-BR";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    wakeRecognitionRef.current = recognition;
+
+    recognition.onresult = (e: any) => {
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const transcript = e.results[i][0].transcript.toLowerCase();
+        if (transcript.includes("ei case") || transcript.includes("hey case") || transcript.includes("a case") || transcript.includes("ei cais")) {
+          recognition.stop();
+          setWakeWordAtivo(false);
+          toast.success("🎤 Pode falar!");
+          setTimeout(() => startVoiceCommand(), 500);
+          return;
+        }
+      }
+    };
+
+    recognition.onend = () => {
+      // Reinicia automaticamente para ficar ouvindo
+      if (wakeWordAtivo) {
+        try { recognition.start(); } catch {}
+      }
+    };
+
+    recognition.onerror = (e: any) => {
+      if (e.error !== "aborted") {
+        try { recognition.start(); } catch {}
+      }
+    };
+
+    recognition.start();
+    setWakeWordAtivo(true);
+    toast.success("👂 Ouvindo... diga 'Ei Case' para ativar");
+  }
+
+  function stopWakeWord() {
+    wakeRecognitionRef.current?.stop();
+    setWakeWordAtivo(false);
+    toast("Modo de escuta desativado");
+  }
+
+  function startVoiceCommand() {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    const recognition = new SpeechRecognition();
+    recognition.lang = "pt-BR";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.start();
+    setRecording(true);
+    recognition.onresult = (e: any) => {
+      const text = e.results[0][0].transcript;
+      setRecording(false);
+      setTab("chat");
+      sendMessage(text);
+    };
+    recognition.onerror = () => {
+      toast.error("Não entendi. Tente novamente.");
+      setRecording(false);
+      // Volta a ouvir wake word
+      setTimeout(() => startWakeWord(), 1000);
+    };
+    recognition.onend = () => setRecording(false);
+  }
+
+  function startVoice() {    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       toast.error("Seu navegador não suporta reconhecimento de voz");
       return;
@@ -244,10 +319,10 @@ export default function AssistenteFinanceiro() {
 
         {/* PAINEL */}
         <TabsContent value="painel" className="space-y-6 mt-4">
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <StatsCard title="Receita do mês" value={`R$ ${receitaMes.toFixed(2)}`} icon={DollarSign} variant="success" />
-            <StatsCard title="Total em dívidas" value={`R$ ${totalDividas.toFixed(2)}`} icon={TrendingDown} variant="warning" />
-            <StatsCard title="Meta semanal" value={`R$ ${metaSemana.toFixed(2)}`} icon={Target} />
+         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatsCard title="Receita do mês" value={`R$ ${(receitaMes/1000).toFixed(1)}k`} icon={DollarSign} variant="success" />
+            <StatsCard title="Total em dívidas" value={`R$ ${(totalDividas/1000).toFixed(1)}k`} icon={TrendingDown} variant="warning" />
+            <StatsCard title="Meta semanal" value={`R$ ${(metaSemana/1000).toFixed(1)}k`} icon={Target} />
             <StatsCard title="Contas críticas" value={String(criticas)} icon={AlertCircle} variant={criticas > 0 ? "warning" : "primary"} />
           </div>
 
