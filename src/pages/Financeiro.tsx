@@ -100,7 +100,8 @@ export default function Financeiro() {
   });
 
   const [billStatusFilter, setBillStatusFilter] = useState<string>("todas");
-  const [billPeriod, setBillPeriod] = useState<"mes" | "dia" | "todas">("mes");
+  // Filtro de data opcional para a listagem de contas. Vazio = mostra TODAS as contas.
+  const [billDateFilter, setBillDateFilter] = useState<string>("");
 
   function billRealStatus(b: any): "paga" | "atrasada" | "vence-hoje" | "proxima" {
     if (b.status === "paga" || b.paid_at) return "paga";
@@ -129,21 +130,12 @@ export default function Financeiro() {
   const totalAtrasadas = overdueAll.reduce((s, b) => s + Number(b.valor), 0);
   const totalPagasMes = paidThisMonth.reduce((s, b) => s + Number(b.valor), 0);
 
-  const billLancadaEm = (b: any) => (b.created_at ? format(parseISO(b.created_at), "yyyy-MM-dd") : null);
-
   const filteredBills = allBills
     .filter((b) => {
-      // "todas": geral, sem recorte de data
-      if (billPeriod === "todas") return true;
-      // "dia": contas lançadas na data selecionada (por data de lançamento / created_at)
-      if (billPeriod === "dia") return billLancadaEm(b) === selectedDate;
-      // "mes" (padrão): pendentes sempre + pagas do mês selecionado
-      const ref = b.paid_at ? format(parseISO(b.paid_at), "yyyy-MM-dd") : b.due_date;
-      const isPaid = billRealStatus(b) === "paga";
-      if (isPaid) return ref && ref >= monthStartDate && ref <= monthEndDate;
-      if (!ref) return true;
-      // Pendentes do mês ou anteriores ainda em aberto
-      return ref <= monthEndDate;
+      // Padrão: sem data selecionada → mostra TODAS as contas cadastradas.
+      if (!billDateFilter) return true;
+      // Com data selecionada → filtra pelas contas que vencem nesse dia.
+      return b.due_date === billDateFilter;
     })
     .filter((b) => billStatusFilter === "todas" || billRealStatus(b) === billStatusFilter)
     .sort((a, b) => {
@@ -302,9 +294,18 @@ export default function Financeiro() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-3 flex-wrap">
               <CardTitle className="font-heading text-lg">
-                Contas — {format(parseISO(selectedDate), "MMMM 'de' yyyy", { locale: ptBR })}
+                {billDateFilter
+                  ? `Contas — vencimento ${format(parseISO(billDateFilter), "dd/MM/yyyy")}`
+                  : "Todas as contas"}
               </CardTitle>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Label className="text-xs text-muted-foreground">Vencimento</Label>
+                <Input
+                  type="date"
+                  value={billDateFilter}
+                  onChange={(e) => setBillDateFilter(e.target.value)}
+                  className="h-8 w-[150px]"
+                />
                 <Label className="text-xs text-muted-foreground">Status</Label>
                 <Select value={billStatusFilter} onValueChange={setBillStatusFilter}>
                   <SelectTrigger className="h-8 w-[160px]"><SelectValue /></SelectTrigger>
@@ -316,6 +317,19 @@ export default function Financeiro() {
                     <SelectItem value="paga">Pagas</SelectItem>
                   </SelectContent>
                 </Select>
+                {(billDateFilter || billStatusFilter !== "todas") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => {
+                      setBillDateFilter("");
+                      setBillStatusFilter("todas");
+                    }}
+                  >
+                    Limpar filtro
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
