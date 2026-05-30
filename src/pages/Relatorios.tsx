@@ -92,6 +92,7 @@ export default function Relatorios() {
           ...c,
     ultimaCompra: ultimoPedido[(c.nome || "").toLowerCase().trim()] || null,
           diasSemComprar: ultimoPedido[(c.nome || "").toLowerCase().trim()]
+            ? differenceInDays(today, new Date(ultimoPedido[(c.nome || "").toLowerCase().trim()]))
             ? differenceInDays(today, new Date(ultimoPedido[c.id]))
             : null,
         }))
