@@ -177,7 +177,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="gradient-warm px-6 py-4 shadow-warm-lg">
+      <header className="gradient-warm px-3 sm:px-6 py-3 sm:py-4 shadow-warm-lg">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-3xl">🍱</span>
@@ -201,7 +201,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
 
-      <main className="container mx-auto px-4 py-6 animate-fade-in">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 animate-fade-in max-w-full overflow-x-hidden">
         {children}
       </main>
     </div>
