@@ -100,6 +100,7 @@ export default function Financeiro() {
   });
 
   const [billStatusFilter, setBillStatusFilter] = useState<string>("todas");
+  const [billPeriod, setBillPeriod] = useState<"mes" | "dia" | "todas">("mes");
 
   function billRealStatus(b: any): "paga" | "atrasada" | "vence-hoje" | "proxima" {
     if (b.status === "paga" || b.paid_at) return "paga";
@@ -128,10 +129,16 @@ export default function Financeiro() {
   const totalAtrasadas = overdueAll.reduce((s, b) => s + Number(b.valor), 0);
   const totalPagasMes = paidThisMonth.reduce((s, b) => s + Number(b.valor), 0);
 
+  const billLancadaEm = (b: any) => (b.created_at ? format(parseISO(b.created_at), "yyyy-MM-dd") : null);
+
   const filteredBills = allBills
     .filter((b) => {
+      // "todas": geral, sem recorte de data
+      if (billPeriod === "todas") return true;
+      // "dia": contas lançadas na data selecionada (por data de lançamento / created_at)
+      if (billPeriod === "dia") return billLancadaEm(b) === selectedDate;
+      // "mes" (padrão): pendentes sempre + pagas do mês selecionado
       const ref = b.paid_at ? format(parseISO(b.paid_at), "yyyy-MM-dd") : b.due_date;
-      // Mostrar contas pendentes sempre + pagas do mês selecionado
       const isPaid = billRealStatus(b) === "paga";
       if (isPaid) return ref && ref >= monthStartDate && ref <= monthEndDate;
       if (!ref) return true;
