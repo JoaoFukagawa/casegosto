@@ -93,7 +93,6 @@ export default function Relatorios() {
     ultimaCompra: ultimoPedido[(c.nome || "").toLowerCase().trim()] || null,
           diasSemComprar: ultimoPedido[(c.nome || "").toLowerCase().trim()]
             ? differenceInDays(today, new Date(ultimoPedido[(c.nome || "").toLowerCase().trim()]))
-            ? differenceInDays(today, new Date(ultimoPedido[c.id]))
             : null,
         }))
         .filter((c) => !c.ultimaCompra || new Date(c.ultimaCompra) < new Date(corte))
