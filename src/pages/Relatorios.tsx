@@ -73,26 +73,25 @@ export default function Relatorios() {
       // Busca o último pedido de cada cliente
       const { data: pedidos, error: errPedidos } = await supabase
         .from("orders")
-        .select("customer_id, created_at")
+        .select("customer_name, created_at")
         .order("created_at", { ascending: false });
       if (errPedidos) throw errPedidos;
 
-      // Último pedido por cliente
+      // Último pedido por cliente (comparando pelo nome)
       const ultimoPedido: Record<string, string> = {};
       for (const p of pedidos || []) {
-        if (p.customer_id && !ultimoPedido[p.customer_id]) {
-          ultimoPedido[p.customer_id] = p.created_at;
+        const nome = (p.customer_name || "").toLowerCase().trim();
+        if (nome && !ultimoPedido[nome]) {
+          ultimoPedido[nome] = p.created_at;
         }
       }
 
       // Filtra clientes que não compram há X dias ou nunca compraram
       return (clientes || [])
         .map((c) => ({
-          id: c.id,
-          name: c.nome,
-          phone: c.telefone,
-          ultimaCompra: ultimoPedido[c.id] || null,
-          diasSemComprar: ultimoPedido[c.id]
+          ...c,
+    ultimaCompra: ultimoPedido[(c.nome || "").toLowerCase().trim()] || null,
+          diasSemComprar: ultimoPedido[(c.nome || "").toLowerCase().trim()]
             ? differenceInDays(today, new Date(ultimoPedido[c.id]))
             : null,
         }))
@@ -109,8 +108,9 @@ export default function Relatorios() {
     if (!clientesInativos?.length) return;
     const header = ["Nome", "Telefone", "Última compra", "Dias sem comprar"];
     const rows = clientesInativos.map((c) => [
-      `"${(c.name || "").replace(/"/g, '""')}"`,
-      c.phone || "",
+      `"${(c.nome
+ || "").replace(/"/g, '""')}"`,
+      c.telefone || "",
       c.ultimaCompra ? format(new Date(c.ultimaCompra), "dd/MM/yyyy") : "Nunca comprou",
       c.diasSemComprar !== null ? String(c.diasSemComprar) : "—",
     ]);
@@ -349,8 +349,8 @@ export default function Relatorios() {
                   <TableBody>
                     {clientesInativos.map((c) => (
                       <TableRow key={c.id}>
-                        <TableCell className="font-medium">{c.name}</TableCell>
-                        <TableCell>{c.phone || "—"}</TableCell>
+                        <TableCell className="font-medium">{c.nome}</TableCell>
+                        <TableCell>{c.telefone || "—"}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {c.ultimaCompra ? format(new Date(c.ultimaCompra), "dd/MM/yyyy") : "Nunca comprou"}
                         </TableCell>
