@@ -59,6 +59,17 @@ function mesesAtrasados(dateStr: string): number {
   return Math.max(1, (today.getFullYear() - d.getFullYear()) * 12 + (today.getMonth() - d.getMonth()));
 }
 
+// Mapeia uma categoria livre para uma categoria de despesa operacional do mês.
+// Retorna null se NÃO for uma despesa operacional (ex: aluguel, impostos).
+function mapExpenseCategory(cat: string): string | null {
+  const c = (cat || "").toLowerCase();
+  if (/(ingredient|mercado|merca|alimento|comida|hortifr|carne|frango|fruta|verdura|legume|couve)/.test(c)) return "mercado";
+  if (/(embalag|marmitex|pote|sacola|descart)/.test(c)) return "embalagens";
+  if (/(g[áa]s|botij)/.test(c)) return "gas";
+  if (/(entregad|motoboy|ifood|uber|delivery)/.test(c)) return "entregador";
+  return null;
+}
+
 const TOOLS = [
   {
     type: "function",
@@ -173,7 +184,7 @@ ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
 - Seja direto, empático e em português brasileiro. Use valores em R$ formatados e dados REAIS acima.
 - FINANÇAS: priorize contas que causam corte (luz, água) ou despejo (aluguel). Quando o usuário disser quanto tem disponível, sugira exatamente quais contas pagar com nomes e valores reais.
 - CARDÁPIO: quando perguntarem sobre o que vender, sugira pratos populares de marmitaria brasileira (frango grelhado, picanha, feijoada, estrogonofe, parmegiana, bife acebolado, etc) sempre com proteína + carboidrato + salada. Dê sugestões por dia da semana. Considere o que já está no cardápio cadastrado e nos ingredientes/gastos recentes para evitar desperdício. Inclua dicas de preço (markup 2,5x a 3x).
-- LANÇAMENTO AUTOMÁTICO: quando o usuário disser que teve um gasto/conta nova (ex: "Tive uma conta de R$100"), CHAME registrar_conta. Se não houver data, use hoje (${hoje}).
+- LANÇAMENTO AUTOMÁTICO: quando o usuário disser que teve um gasto/conta nova (ex: "Tive uma conta de R$100", "comprei R$52 de couve", "gastei R$80 com ingredientes"), CHAME registrar_conta. Se não houver data, use hoje (${hoje}). Use categorias claras: "Ingredientes" (couve, carne, mercado, comida), "Embalagens" (marmitex, potes), "Gás", "Entregador" (motoboy, ifood) — essas viram despesa do mês automaticamente. Para outras (aluguel, luz, impostos), continue como conta a pagar normal.
 - BAIXA DE CONTA: quando o usuário disser que pagou/deu baixa em uma conta existente (ex: "Paguei o aluguel hoje", "Dei baixa na conta de luz", "A água foi paga"), procure na lista de CONTAS PENDENTES acima a conta correspondente (faça match pelo nome/categoria, ignorando maiúsculas/minúsculas) e CHAME dar_baixa_conta com o bill_id (UUID entre colchetes). Se nenhuma conta bater, avise que não encontrou. Se houver várias possíveis, pergunte qual antes de chamar. Após confirmar a baixa, responda algo como "Pronto! Marquei o [nome] como pago hoje, ${hojeBR}."`;
 
     const convo: any[] = [{ role: "system", content: systemContent }, ...messages];
@@ -219,20 +230,38 @@ ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
             result = { ok: false, error: "Usuário não autenticado" };
           } else {
             const due_date = args.due_date || hoje;
-            const insertRes = await supabase.from("bills").insert({
+            const cat = String(args.categoria ?? "Outros");
+            const expenseCat = mapExpenseCategory(cat);
+            const isOperacional = expenseCat !== null;
+            const valor = Number(args.valor ?? 0);
+            const nome = String(args.nome ?? "Conta");
+
+            const billPayload: any = {
               user_id: userId,
-              nome: String(args.nome ?? "Conta"),
-              valor: Number(args.valor ?? 0),
-              categoria: String(args.categoria ?? "Outros"),
-              status: statusFromDate(due_date),
-              meses_atrasada: mesesAtrasados(due_date),
+              nome,
+              valor,
+              categoria: cat,
+              status: isOperacional ? "paga" : statusFromDate(due_date),
+              meses_atrasada: isOperacional ? 0 : mesesAtrasados(due_date),
               due_date,
-            });
+            };
+            if (isOperacional) billPayload.paid_at = new Date().toISOString();
+
+            const insertRes = await supabase.from("bills").insert(billPayload);
             if (insertRes.error) {
               result = { ok: false, error: insertRes.error.message };
             } else {
-              result = { ok: true, nome: args.nome, valor: args.valor, categoria: args.categoria, due_date };
-              toolActions.push({ nome: args.nome, valor: Number(args.valor), categoria: args.categoria });
+              if (isOperacional) {
+                await supabase.from("expenses").insert({
+                  user_id: userId,
+                  description: nome,
+                  category: expenseCat!,
+                  amount: valor,
+                  expense_date: hoje,
+                });
+              }
+              result = { ok: true, nome, valor, categoria: cat, due_date, lancado_em_despesas: isOperacional };
+              toolActions.push({ nome, valor, categoria: cat });
             }
           }
         } else if (fnName === "dar_baixa_conta") {
@@ -248,6 +277,16 @@ ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
             if (upd.error) {
               result = { ok: false, error: upd.error.message };
             } else {
+              if (userId) {
+                const expenseCat = mapExpenseCategory(target.categoria) ?? "outros";
+                await supabase.from("expenses").insert({
+                  user_id: userId,
+                  description: target.nome,
+                  category: expenseCat,
+                  amount: Number(target.valor),
+                  expense_date: hoje,
+                });
+              }
               result = { ok: true, nome: target.nome, valor: target.valor, paid_at: hojeBR };
               paidActions.push({ id: billId, nome: target.nome });
             }

@@ -291,6 +291,8 @@ export default function AssistenteFinanceiro() {
       if (actions.length > 0 || paid.length > 0) {
         qc.invalidateQueries({ queryKey: ["bills"] });
         qc.invalidateQueries({ queryKey: ["financeiro-bills"] });
+        qc.invalidateQueries({ queryKey: ["relatorios-expenses"] });
+        qc.invalidateQueries({ queryKey: ["expenses"] });
         if (actions.length > 0) toast.success(`${actions.length} conta(s) lançada(s) pela IA`);
         if (paid.length > 0) toast.success(`${paid.length} conta(s) marcada(s) como paga(s)`);
       }
@@ -439,8 +441,23 @@ export default function AssistenteFinanceiro() {
                         }`}
                       >
                         {m.role === "assistant" ? (
-                          <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:my-2 prose-strong:text-foreground prose-strong:font-bold dark:prose-invert">
-                            <ReactMarkdown>{m.content}</ReactMarkdown>
+                          <div className="text-sm leading-relaxed space-y-1">
+                            <ReactMarkdown
+                              components={{
+                                p: ({ children }) => <p className="my-1">{children}</p>,
+                                strong: ({ children }) => <strong className="font-bold text-foreground">{children}</strong>,
+                                em: ({ children }) => <em className="italic">{children}</em>,
+                                ul: ({ children }) => <ul className="list-disc pl-5 my-1 space-y-0.5">{children}</ul>,
+                                ol: ({ children }) => <ol className="list-decimal pl-5 my-1 space-y-0.5">{children}</ol>,
+                                li: ({ children }) => <li className="my-0">{children}</li>,
+                                h1: ({ children }) => <h1 className="text-base font-bold my-1">{children}</h1>,
+                                h2: ({ children }) => <h2 className="text-sm font-bold my-1">{children}</h2>,
+                                h3: ({ children }) => <h3 className="text-sm font-bold my-1">{children}</h3>,
+                                code: ({ children }) => <code className="bg-background/60 px-1 rounded text-xs">{children}</code>,
+                              }}
+                            >
+                              {m.content}
+                            </ReactMarkdown>
                           </div>
                         ) : (
                           m.content

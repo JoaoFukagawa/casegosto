@@ -25,10 +25,11 @@ const iconStyles = {
 
 function getFontSize(value: string | number): string {
   const len = String(value).length;
-  if (len <= 6) return "text-2xl";
-  if (len <= 9) return "text-lg";
-  if (len <= 12) return "text-base";
-  return "text-sm";
+  if (len <= 5) return "text-2xl";
+  if (len <= 7) return "text-xl";
+  if (len <= 9) return "text-base";
+  if (len <= 12) return "text-sm";
+  return "text-xs";
 }
 
 export default function StatsCard({ title, value, icon: Icon, description, variant = "default" }: StatsCardProps) {
@@ -40,7 +41,7 @@ export default function StatsCard({ title, value, icon: Icon, description, varia
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium text-muted-foreground leading-tight">{title}</p>
-          <p className={`${getFontSize(value)} font-bold font-heading text-foreground leading-tight break-all`}>{value}</p>
+          <p className={`${getFontSize(value)} font-bold font-heading text-foreground leading-tight whitespace-nowrap truncate`}>{value}</p>
           {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
         </div>
       </CardContent>

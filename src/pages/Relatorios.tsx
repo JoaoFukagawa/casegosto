@@ -77,24 +77,32 @@ export default function Relatorios() {
         .order("created_at", { ascending: false });
       if (errPedidos) throw errPedidos;
 
-      // Último pedido por cliente (comparando pelo nome)
+      // Último pedido por cliente (comparando pelo nome normalizado)
+      const normalize = (s: string) => (s || "").toLowerCase().trim().replace(/\s+/g, " ");
       const ultimoPedido: Record<string, string> = {};
       for (const p of pedidos || []) {
-        const nome = (p.customer_name || "").toLowerCase().trim();
-        if (nome && !ultimoPedido[nome]) {
+        const nome = normalize(p.customer_name || "");
+        if (nome && p.created_at && !ultimoPedido[nome]) {
           ultimoPedido[nome] = p.created_at;
         }
       }
 
+      const todayMs = today.getTime();
+
       // Filtra clientes que não compram há X dias ou nunca compraram
       return (clientes || [])
-        .map((c) => ({
-          ...c,
-    ultimaCompra: ultimoPedido[(c.nome || "").toLowerCase().trim()] || null,
-          diasSemComprar: ultimoPedido[(c.nome || "").toLowerCase().trim()]
-            ? differenceInDays(today, new Date(ultimoPedido[(c.nome || "").toLowerCase().trim()]))
-            : null,
-        }))
+        .map((c) => {
+          const key = normalize(c.nome || "");
+          const ultimaCompra = key ? ultimoPedido[key] ?? null : null;
+          let diasSemComprar: number | null = null;
+          if (ultimaCompra) {
+            const t = new Date(ultimaCompra).getTime();
+            if (!Number.isNaN(t)) {
+              diasSemComprar = Math.max(0, Math.floor((todayMs - t) / 86400000));
+            }
+          }
+          return { ...c, ultimaCompra, diasSemComprar };
+        })
         .filter((c) => !c.ultimaCompra || new Date(c.ultimaCompra) < new Date(corte))
         .sort((a, b) => {
           if (!a.ultimaCompra) return -1;
