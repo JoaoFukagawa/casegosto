@@ -219,20 +219,38 @@ ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
             result = { ok: false, error: "Usuário não autenticado" };
           } else {
             const due_date = args.due_date || hoje;
-            const insertRes = await supabase.from("bills").insert({
+            const cat = String(args.categoria ?? "Outros");
+            const expenseCat = mapExpenseCategory(cat);
+            const isOperacional = expenseCat !== null;
+            const valor = Number(args.valor ?? 0);
+            const nome = String(args.nome ?? "Conta");
+
+            const billPayload: any = {
               user_id: userId,
-              nome: String(args.nome ?? "Conta"),
-              valor: Number(args.valor ?? 0),
-              categoria: String(args.categoria ?? "Outros"),
-              status: statusFromDate(due_date),
-              meses_atrasada: mesesAtrasados(due_date),
+              nome,
+              valor,
+              categoria: cat,
+              status: isOperacional ? "paga" : statusFromDate(due_date),
+              meses_atrasada: isOperacional ? 0 : mesesAtrasados(due_date),
               due_date,
-            });
+            };
+            if (isOperacional) billPayload.paid_at = new Date().toISOString();
+
+            const insertRes = await supabase.from("bills").insert(billPayload);
             if (insertRes.error) {
               result = { ok: false, error: insertRes.error.message };
             } else {
-              result = { ok: true, nome: args.nome, valor: args.valor, categoria: args.categoria, due_date };
-              toolActions.push({ nome: args.nome, valor: Number(args.valor), categoria: args.categoria });
+              if (isOperacional) {
+                await supabase.from("expenses").insert({
+                  user_id: userId,
+                  description: nome,
+                  category: expenseCat!,
+                  amount: valor,
+                  expense_date: hoje,
+                });
+              }
+              result = { ok: true, nome, valor, categoria: cat, due_date, lancado_em_despesas: isOperacional };
+              toolActions.push({ nome, valor, categoria: cat });
             }
           }
         } else if (fnName === "dar_baixa_conta") {
@@ -248,6 +266,16 @@ ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
             if (upd.error) {
               result = { ok: false, error: upd.error.message };
             } else {
+              if (userId) {
+                const expenseCat = mapExpenseCategory(target.categoria) ?? "outros";
+                await supabase.from("expenses").insert({
+                  user_id: userId,
+                  description: target.nome,
+                  category: expenseCat,
+                  amount: Number(target.valor),
+                  expense_date: hoje,
+                });
+              }
               result = { ok: true, nome: target.nome, valor: target.valor, paid_at: hojeBR };
               paidActions.push({ id: billId, nome: target.nome });
             }
