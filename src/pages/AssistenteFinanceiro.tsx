@@ -291,6 +291,8 @@ export default function AssistenteFinanceiro() {
       if (actions.length > 0 || paid.length > 0) {
         qc.invalidateQueries({ queryKey: ["bills"] });
         qc.invalidateQueries({ queryKey: ["financeiro-bills"] });
+        qc.invalidateQueries({ queryKey: ["relatorios-expenses"] });
+        qc.invalidateQueries({ queryKey: ["expenses"] });
         if (actions.length > 0) toast.success(`${actions.length} conta(s) lançada(s) pela IA`);
         if (paid.length > 0) toast.success(`${paid.length} conta(s) marcada(s) como paga(s)`);
       }
