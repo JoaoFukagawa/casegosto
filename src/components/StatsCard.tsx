@@ -25,10 +25,11 @@ const iconStyles = {
 
 function getFontSize(value: string | number): string {
   const len = String(value).length;
-  if (len <= 6) return "text-2xl";
-  if (len <= 9) return "text-lg";
-  if (len <= 12) return "text-base";
-  return "text-sm";
+  if (len <= 5) return "text-2xl";
+  if (len <= 7) return "text-xl";
+  if (len <= 9) return "text-base";
+  if (len <= 12) return "text-sm";
+  return "text-xs";
 }
 
 export default function StatsCard({ title, value, icon: Icon, description, variant = "default" }: StatsCardProps) {
