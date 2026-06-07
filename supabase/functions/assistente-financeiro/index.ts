@@ -59,6 +59,17 @@ function mesesAtrasados(dateStr: string): number {
   return Math.max(1, (today.getFullYear() - d.getFullYear()) * 12 + (today.getMonth() - d.getMonth()));
 }
 
+// Mapeia uma categoria livre para uma categoria de despesa operacional do mês.
+// Retorna null se NÃO for uma despesa operacional (ex: aluguel, impostos).
+function mapExpenseCategory(cat: string): string | null {
+  const c = (cat || "").toLowerCase();
+  if (/(ingredient|mercado|merca|alimento|comida|hortifr|carne|frango|fruta|verdura|legume|couve)/.test(c)) return "mercado";
+  if (/(embalag|marmitex|pote|sacola|descart)/.test(c)) return "embalagens";
+  if (/(g[áa]s|botij)/.test(c)) return "gas";
+  if (/(entregad|motoboy|ifood|uber|delivery)/.test(c)) return "entregador";
+  return null;
+}
+
 const TOOLS = [
   {
     type: "function",
