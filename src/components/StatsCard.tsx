@@ -41,7 +41,7 @@ export default function StatsCard({ title, value, icon: Icon, description, varia
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium text-muted-foreground leading-tight">{title}</p>
-          <p className={`${getFontSize(value)} font-bold font-heading text-foreground leading-tight break-all`}>{value}</p>
+          <p className={`${getFontSize(value)} font-bold font-heading text-foreground leading-tight whitespace-nowrap truncate`}>{value}</p>
           {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
         </div>
       </CardContent>
