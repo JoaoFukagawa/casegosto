@@ -384,14 +384,10 @@ const { data: pratosAnteriores } = useQuery({
               <Input
                 id="name"
                 value={customerName}
-                list="clientes-nomes"
-                onChange={(e) => { setCustomerName(e.target.value); setMatchedClienteId(null); }}
-                onBlur={() => tryMatchCustomer(customerName, customerPhone)}
+                onChange={(e) => { setCustomerName(e.target.value); }}
                 placeholder="Ex: Maria"
               />
-              <datalist id="clientes-nomes">
-                {clientes?.map((c) => <option key={c.id} value={c.nome} />)}
-              </datalist>
+
             </div>
             <div>
               <Label htmlFor="phone">Telefone</Label>
