@@ -88,18 +88,18 @@ const { data: pratosAnteriores } = useQuery({
     }
   };
 
-  const tryMatchCustomer = (name: string, phone: string) => {
+  const tryMatchCustomer = (_name: string, phone: string) => {
     if (!clientes) return;
-    const nameLower = name.trim().toLowerCase();
     const phoneDigits = phone.replace(/\D/g, "");
-    let match: any = null;
-    if (nameLower) match = clientes.find((c) => c.nome.toLowerCase() === nameLower);
-    if (!match && phoneDigits.length >= 8) {
-      match = clientes.find((c) => (c.telefone || "").replace(/\D/g, "").endsWith(phoneDigits.slice(-8)));
+    if (phoneDigits.length < 8) {
+      setMatchedClienteId(null);
+      return;
     }
+    const match = clientes.find((c) => (c.telefone || "").replace(/\D/g, "").endsWith(phoneDigits.slice(-8)));
     if (match) applyCliente(match);
     else setMatchedClienteId(null);
   };
+
 
   const saveAsNewCliente = useMutation({
     mutationFn: async () => {
