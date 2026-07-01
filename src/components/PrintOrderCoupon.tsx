@@ -79,8 +79,9 @@ export default function PrintOrderCoupon({ order }: { order: Order }) {
           body {
             font-family: 'Courier New', monospace;
             font-size: 12px;
-            width: 80mm;
-            padding: 4mm;
+            width: 72mm;
+            margin: 0;
+            padding: 2mm;
             color: #000;
           }
           .center { text-align: center; }
@@ -89,13 +90,14 @@ export default function PrintOrderCoupon({ order }: { order: Order }) {
             border-top: 1px dashed #000;
             margin: 6px 0;
           }
-          table { width: 100%; border-collapse: collapse; }
+          table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+          td { word-wrap: break-word; overflow-wrap: break-word; }
           .total-row td {
             font-weight: bold;
             font-size: 14px;
             padding-top: 4px;
           }
-          .info { margin: 2px 0; }
+          .info { margin: 2px 0; word-wrap: break-word; }
           .notes {
             font-style: italic;
             margin-top: 4px;
@@ -103,8 +105,17 @@ export default function PrintOrderCoupon({ order }: { order: Order }) {
             border: 1px dashed #000;
           }
           @media print {
-            body { width: 80mm; }
-            @page { margin: 0; size: 80mm auto; }
+            @page { size: 80mm auto; margin: 0; }
+            html, body {
+              width: 72mm;
+              margin: 0;
+              padding: 2mm;
+              font-size: 12px;
+            }
+            * {
+              box-shadow: none !important;
+              border-radius: 0 !important;
+            }
           }
         </style>
       </head>
