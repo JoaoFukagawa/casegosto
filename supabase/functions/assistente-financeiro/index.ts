@@ -196,7 +196,7 @@ ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
       const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: convo, tools: TOOLS }),
+        body: JSON.stringify({ model: "claude-sonnet-4-6", messages: convo, tools: TOOLS }),
       });
 
       if (res.status === 429) return new Response(JSON.stringify({ error: "Muitas requisições. Aguarde e tente novamente." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
