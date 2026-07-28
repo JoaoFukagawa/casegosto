@@ -1,8 +1,9 @@
 import StatsCard from "@/components/StatsCard";
 import StatusBadge from "@/components/StatusBadge";
 import NewOrderDialog from "@/components/NewOrderDialog";
+import EditOrderDialog from "@/components/EditOrderDialog";
 import PageHeader from "@/components/PageHeader";
-import { DollarSign, ShoppingBag, Clock, CheckCircle, FileText, Store, Truck, Trash2 } from "lucide-react";
+import { DollarSign, ShoppingBag, Clock, CheckCircle, FileText, Store, Truck, Trash2, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -119,14 +120,17 @@ export default function Dashboard() {
                           {statusLabel[order.status]}
                         </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive ml-auto"
-                        onClick={() => deleteOrder.mutate(order.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="ml-auto flex items-center gap-1">
+                        <EditOrderDialog order={order as any} />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          onClick={() => deleteOrder.mutate(order.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
