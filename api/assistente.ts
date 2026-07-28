@@ -134,6 +134,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const hoje = new Date().toISOString().slice(0, 10);
     const hojeBR = new Date().toLocaleDateString("pt-BR");
 
+    // Daily breakdown
+    const dailyMap: Record<string, { qty: number; total: number }> = {};
+    for (const o of orders) {
+      const day = (o.created_at || "").slice(0, 10);
+      if (!dailyMap[day]) dailyMap[day] = { qty: 0, total: 0 };
+      dailyMap[day].qty += 1;
+      dailyMap[day].total += Number(o.total);
+    }
+    const dailyLines = Object.entries(dailyMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([day, d]) => {
+        const dObj = new Date(day + "T00:00:00");
+        const nomeDia = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"][dObj.getDay()];
+        return `${day} (${nomeDia}): ${d.qty} pedidos, ${fmtBRL(d.total)}`;
+      })
+      .join("\n");
+
     const systemContent = `Você é um assistente completo de uma marmitaria familiar brasileira chamada CASEGOSTO. Você ajuda com finanças, cardápio e gestão.
 
 DATA DE HOJE: ${hoje} (${hojeBR})
@@ -152,6 +169,9 @@ ${formatStock(expenses)}
 
 === PEDIDOS DO MÊS ATUAL ===
 Quantidade: ${qtdPedidos} pedidos | Receita: ${fmtBRL(receitaMes)}
+
+--- DETALHAMENTO POR DIA ---
+${dailyLines}
 
 ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
 
