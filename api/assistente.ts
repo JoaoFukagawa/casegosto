@@ -113,11 +113,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const ini = new Date(); ini.setDate(1); ini.setHours(0, 0, 0, 0);
     const fim = new Date(ini); fim.setMonth(fim.getMonth() + 1);
 
-    const [billsRes, menuRes, expensesRes, ordersRes] = await Promise.all([
+    const [billsRes, menuRes, expensesRes, ordersRes, itemsRes] = await Promise.all([
       supabase.from("bills").select("id,nome,valor,categoria,status,meses_atrasada,due_date,paid_at").order("due_date", { ascending: true, nullsFirst: false }),
       supabase.from("menu_items").select("name,category,price,stock,unit_type,active").order("category"),
       supabase.from("expenses").select("description,category,amount,expense_date").gte("expense_date", ini.toISOString().slice(0, 10)).order("expense_date", { ascending: false }).limit(30),
-      supabase.from("orders").select("total,status,created_at").gte("created_at", ini.toISOString()).lt("created_at", fim.toISOString()),
+      supabase.from("orders").select("total,status,created_at,payment_method").gte("created_at", ini.toISOString()).lt("created_at", fim.toISOString()),
+      supabase.from("order_items").select("quantity, weight, unit_price, menu_items(name), orders!inner(created_at, status)").gte("orders.created_at", ini.toISOString()).lt("orders.created_at", fim.toISOString()),
     ]);
 
     const allBills = billsRes.data ?? [];
@@ -126,6 +127,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const menu = menuRes.data ?? [];
     const expenses = expensesRes.data ?? [];
     const orders = (ordersRes.data ?? []).filter((o: any) => o.status !== "cancelado");
+    const orderItems = itemsRes.data ?? [];
 
     const totalDividas = pendingBills.reduce((s: number, b: any) => s + Number(b.valor), 0);
     const receitaMes = orders.reduce((s: number, o: any) => s + Number(o.total), 0);
@@ -151,6 +153,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
       .join("\n");
 
+    // Items sold per day
+    const itemsPerDay: Record<string, Record<string, { qty: number; weight: number }>> = {};
+    for (const item of orderItems) {
+      const order = (item as any).orders as any;
+      if (!order || order.status === "cancelado") continue;
+      const day = (order.created_at || "").slice(0, 10);
+      const name = ((item as any).menu_items as any)?.name || "Item sem nome";
+      if (!itemsPerDay[day]) itemsPerDay[day] = {};
+      if (!itemsPerDay[day][name]) itemsPerDay[day][name] = { qty: 0, weight: 0 };
+      itemsPerDay[day][name].qty += Number(item.quantity) || 0;
+      itemsPerDay[day][name].weight += Number(item.weight) || 0;
+    }
+    const dailyItemsLines = Object.entries(itemsPerDay)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([day, items]) => {
+        const dObj = new Date(day + "T00:00:00");
+        const nomeDia = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"][dObj.getDay()];
+        const itemStr = Object.entries(items)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([name, vals]) => {
+            if (vals.weight > 0) return `${name}: ${vals.qty} unidades (${vals.weight.toFixed(1)}kg)`;
+            return `${name}: ${vals.qty} unidades`;
+          })
+          .join(", ");
+        return `${day} (${nomeDia}): ${itemStr}`;
+      })
+      .join("\n");
+
     const systemContent = `Você é um assistente completo de uma marmitaria familiar brasileira chamada CASEGOSTO. Você ajuda com finanças, cardápio e gestão.
 
 DATA DE HOJE: ${hoje} (${hojeBR})
@@ -170,8 +200,11 @@ ${formatStock(expenses)}
 === PEDIDOS DO MÊS ATUAL ===
 Quantidade: ${qtdPedidos} pedidos | Receita: ${fmtBRL(receitaMes)}
 
---- DETALHAMENTO POR DIA ---
+--- PEDIDOS POR DIA ---
 ${dailyLines}
+
+--- ITENS VENDIDOS POR DIA ---
+${dailyItemsLines}
 
 ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
 
