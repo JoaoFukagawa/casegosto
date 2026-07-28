@@ -1,11 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Package, AlertTriangle, CheckCircle2, Search } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
+import SearchInput from "@/components/SearchInput";
+import EmptyState from "@/components/EmptyState";
+import { Package, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useState, useMemo } from "react";
+import { useActiveMenuItems } from "@/hooks/useMenuItems";
+import { useTodayOrderItems } from "@/hooks/usePratos";
 
 export default function Estoque() {
   const [search, setSearch] = useState("");
@@ -13,33 +15,9 @@ export default function Estoque() {
   const today = new Date();
   const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
 
-  const { data: items, isLoading } = useQuery({
-    queryKey: ["menu_items_estoque"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("menu_items")
-        .select("*")
-        .eq("active", true)
-        .order("category")
-        .order("name");
-      if (error) throw error;
-      return data;
-    },
-    refetchInterval: 10000,
-  });
+  const { data: items, isLoading } = useActiveMenuItems();
 
-  const { data: orderItemsToday } = useQuery({
-    queryKey: ["order_items_today_estoque", startOfDay],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("order_items")
-        .select("menu_item_id, quantity, weight, orders!inner(status, created_at), menu_items(stock_by_unit, unit_type)")
-        .gte("orders.created_at", startOfDay);
-      if (error) throw error;
-      return data;
-    },
-    refetchInterval: 10000,
-  });
+  const { data: orderItemsToday } = useTodayOrderItems(startOfDay);
 
   // Aggregate per menu_item: total ordered, delivered, pending (not yet delivered, not cancelled)
   const aggregates = useMemo(() => {
@@ -135,12 +113,10 @@ export default function Estoque() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-extrabold font-heading text-foreground">Estoque do Dia</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Saldo = Estoque inicial − Entregue. Pendente = pedido feito mas ainda não entregue.
-        </p>
-      </div>
+      <PageHeader
+        title="Estoque do Dia"
+        subtitle="Saldo = Estoque inicial − Entregue. Pendente = pedido feito mas ainda não entregue."
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
@@ -189,24 +165,12 @@ export default function Estoque() {
         </Card>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Pesquisar item..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
-      </div>
+      <SearchInput value={search} onChange={setSearch} placeholder="Pesquisar item..." />
 
       {isLoading ? (
-        <p className="text-center text-muted-foreground py-8">Carregando...</p>
+        <EmptyState message="Carregando..." />
       ) : !filtered.length ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            Nenhum item encontrado
-          </CardContent>
-        </Card>
+        <EmptyState message="Nenhum item encontrado" />
       ) : (
         Object.entries(grouped).map(([category, catItems]) => (
           <Card key={category}>

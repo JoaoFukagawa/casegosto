@@ -1,70 +1,35 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import StatsCard from "@/components/StatsCard";
 import StatusBadge from "@/components/StatusBadge";
 import NewOrderDialog from "@/components/NewOrderDialog";
-import { DollarSign, ShoppingBag, Clock, CheckCircle, FileText, Trophy } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
+import { DollarSign, ShoppingBag, Clock, CheckCircle, FileText, Store, Truck, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useDashboardTodayOrders, useUpdateOrderStatus, useDeleteOrder } from "@/hooks/useOrders";
+import { useNavigate } from "react-router-dom";
+
+const nextStatus: Record<string, string> = {
+  pendente: "preparando",
+  preparando: "pronto",
+  pronto: "entregue",
+};
+
+const statusLabel: Record<string, string> = {
+  pendente: "Preparar",
+  preparando: "Pronto",
+  pronto: "Entregar",
+};
 
 export default function Dashboard() {
   const today = new Date();
   const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+  const navigate = useNavigate();
 
-  const { data: todayOrders } = useQuery({
-    queryKey: ["dashboard", "today"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*")
-        .gte("created_at", startOfDay)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-    refetchInterval: 10000,
-  });
-
-  const { data: recentOrders } = useQuery({
-    queryKey: ["dashboard", "recent"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(8);
-      if (error) throw error;
-      return data;
-    },
-    refetchInterval: 10000,
-  });
-
-  const monthStart = format(startOfMonth(today), "yyyy-MM-dd");
-  const monthEnd = format(endOfMonth(today), "yyyy-MM-dd");
-
-  const { data: pratosRanking } = useQuery({
-    queryKey: ["pratos_ranking", monthStart],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("pratos")
-        .select("nome_prato, data, quantidade_vendida")
-        .gte("data", monthStart)
-        .lte("data", monthEnd);
-      if (error) throw error;
-      const map: Record<string, { nome: string; dias: Set<string>; qtd: number }> = {};
-      for (const p of data || []) {
-        const key = p.nome_prato.trim().toLowerCase();
-        if (!map[key]) map[key] = { nome: p.nome_prato, dias: new Set(), qtd: 0 };
-        map[key].dias.add(p.data);
-        map[key].qtd += p.quantidade_vendida || 0;
-      }
-      return Object.values(map)
-        .map((r) => ({ nome: r.nome, dias: r.dias.size, qtd: r.qtd }))
-        .sort((a, b) => b.qtd - a.qtd);
-    },
-    refetchInterval: 30000,
-  });
+  const { data: todayOrders } = useDashboardTodayOrders(startOfDay);
+  const updateStatus = useUpdateOrderStatus();
+  const deleteOrder = useDeleteOrder();
 
   const totalVendas = todayOrders?.filter((o) => o.status !== "cancelado").reduce((sum, o) => sum + o.total, 0) ?? 0;
   const totalPedidos = todayOrders?.length ?? 0;
@@ -73,19 +38,16 @@ export default function Dashboard() {
   const pedidosHaver = todayOrders?.filter((o) => o.payment_method === "haver" && o.status !== "cancelado") ?? [];
   const totalHaver = pedidosHaver.reduce((sum, o) => sum + o.total, 0);
 
+  const activeOrders = (todayOrders || []).filter((o) => o.status !== "entregue" && o.status !== "cancelado");
+  const deliveredOrders = (todayOrders || []).filter((o) => o.status === "entregue");
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-extrabold font-heading text-foreground">
-            Painel de Hoje
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {format(today, "EEEE, d 'de' MMMM", { locale: ptBR })}
-          </p>
-        </div>
-        <NewOrderDialog />
-      </div>
+      <PageHeader
+        title="Painel de Hoje"
+        subtitle={format(today, "EEEE, d 'de' MMMM", { locale: ptBR })}
+        actions={<NewOrderDialog />}
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <StatsCard title="Faturamento" value={`R$ ${totalVendas.toFixed(2)}`} icon={DollarSign} variant="primary" />
@@ -95,70 +57,106 @@ export default function Dashboard() {
         <StatsCard title="Haver" value={`${pedidosHaver.length} · R$ ${totalHaver.toFixed(2)}`} icon={FileText} description="Pagamentos pendentes" />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-heading text-lg flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-primary" />
-            Ranking do mês — Pratos mais vendidos
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {pratosRanking?.length ? (
-            <div className="space-y-2">
-              {pratosRanking.slice(0, 10).map((p, idx) => (
-                <div key={p.nome} className="flex items-center justify-between rounded-lg border border-border p-3 hover:bg-muted/40">
-                  <div className="flex items-center gap-3">
-                    <span className={`flex h-8 w-8 items-center justify-center rounded-full font-heading font-bold text-sm ${idx === 0 ? "bg-primary text-primary-foreground" : idx < 3 ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
-                      {idx + 1}
-                    </span>
-                    <div>
-                      <p className="font-semibold text-foreground">{p.nome}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Apareceu em <span className="font-medium text-foreground">{p.dias}</span> dia{p.dias !== 1 ? "s" : ""}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="font-bold font-heading text-primary">{p.qtd} marmita{p.qtd !== 1 ? "s" : ""}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-muted-foreground py-6 text-sm">Ainda não há pratos lançados este mês. Adicione o "Prato do dia" ao criar um pedido. 🍱</p>
-          )}
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
+        <div className="space-y-4">
+          <h3 className="text-lg font-heading font-bold text-foreground flex items-center gap-2">
+            <Clock className="h-5 w-5 text-warning" />
+            Em Andamento
+            <span className="text-sm font-normal text-muted-foreground">({activeOrders.length})</span>
+          </h3>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-heading text-lg">Pedidos Recentes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentOrders?.length ? (
+          {activeOrders.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                Nenhum pedido em andamento
+              </CardContent>
+            </Card>
+          ) : (
             <div className="space-y-3">
-              {recentOrders.map((order) => (
-                <div key={order.id} className="flex items-center justify-between rounded-lg border border-border p-4 transition-colors hover:bg-muted/50">
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <p className="font-semibold text-foreground">{order.customer_name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(order.created_at), "dd/MM · HH:mm")}
-                      </p>
+              {activeOrders.map((order) => (
+                <Card key={order.id} className="card-hover">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-foreground truncate">{order.customer_name}</p>
+                          {order.delivery_type === "entrega" ? (
+                            <Truck className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          ) : (
+                            <Store className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(order.created_at), "HH:mm")}
+                          {order.delivery_time && ` · ⏰ ${order.delivery_time.slice(0, 5)}`}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-bold font-heading text-primary">R$ {order.total.toFixed(2)}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <StatusBadge status={order.status} />
-                    <span className="font-bold font-heading text-primary">
-                      R$ {order.total.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
+
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
+                      {nextStatus[order.status] && (
+                        <Button
+                          size="sm"
+                          variant="default"
+                          className="h-8 text-xs font-bold"
+                          onClick={() => updateStatus.mutate({ id: order.id, status: nextStatus[order.status] })}
+                        >
+                          {statusLabel[order.status]}
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive ml-auto"
+                        onClick={() => deleteOrder.mutate(order.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
-          ) : (
-            <p className="text-center text-muted-foreground py-8">Nenhum pedido ainda. Crie o primeiro! 🍱</p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="text-lg font-heading font-bold text-foreground flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-success" />
+            Entregues Hoje
+            <span className="text-sm font-normal text-muted-foreground">({deliveredOrders.length})</span>
+          </h3>
+
+          {deliveredOrders.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                Nenhum pedido entregue ainda
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0 divide-y divide-border">
+                {deliveredOrders.map((order) => (
+                  <div key={order.id} className="flex items-center justify-between px-4 py-3">
+                    <div>
+                      <p className="font-medium text-foreground text-sm">{order.customer_name}</p>
+                      <p className="text-xs text-muted-foreground">{format(new Date(order.created_at), "HH:mm")}</p>
+                    </div>
+                    <span className="font-bold font-heading text-primary text-sm">R$ {order.total.toFixed(2)}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          <Button variant="outline" className="w-full" onClick={() => navigate("/pedidos")}>
+            Ver todos os pedidos
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

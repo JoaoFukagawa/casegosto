@@ -63,10 +63,10 @@ function DesktopNav({ pathname }: { pathname: string }) {
     <div className="hidden md:flex gap-1 px-4">
       <NavLink
         to={home.to}
-        className={`flex items-center gap-2 px-4 py-3 text-sm font-medium font-heading border-b-2 transition-colors ${
+        className={`flex items-center gap-2 px-4 py-3 text-sm font-medium font-heading border-b-2 transition-all duration-200 ${
           homeActive
-            ? "border-primary text-primary"
-            : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            ? "border-primary text-primary bg-primary/5"
+            : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
         }`}
       >
         <home.icon className="h-4 w-4" />
@@ -79,10 +79,10 @@ function DesktopNav({ pathname }: { pathname: string }) {
           <DropdownMenu key={group.label}>
             <DropdownMenuTrigger asChild>
               <button
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium font-heading border-b-2 transition-colors outline-none ${
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium font-heading border-b-2 transition-all duration-200 outline-none ${
                   active
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                    ? "border-primary text-primary bg-primary/5"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
                 }`}
               >
                 <group.icon className="h-4 w-4" />
@@ -90,9 +90,9 @@ function DesktopNav({ pathname }: { pathname: string }) {
                 <ChevronDown className="h-3 w-3 opacity-70" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[180px]">
+            <DropdownMenuContent align="start" className="min-w-[180px] p-1.5">
               {group.items.map((item) => (
-                <DropdownMenuItem key={item.to} asChild>
+                <DropdownMenuItem key={item.to} asChild className="rounded-md">
                   <NavLink
                     to={item.to}
                     className={({ isActive }) =>
@@ -124,14 +124,14 @@ function MobileNav({ pathname }: { pathname: string }) {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-72 p-0">
-          <div className="gradient-warm px-4 py-4">
-            <p className="text-primary-foreground font-heading font-bold text-lg">🍱 CASEGOSTO</p>
+          <div className="bg-[hsl(28,30%,16%)] px-4 py-5">
+            <img src="/logo.jpg" alt="Casegosto" className="h-8 w-auto" />
           </div>
           <nav className="p-3 space-y-4 overflow-y-auto">
             <NavLink
               to={home.to}
               onClick={() => setOpen(false)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 pathname === "/" ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted"
               }`}
             >
@@ -152,7 +152,7 @@ function MobileNav({ pathname }: { pathname: string }) {
                       to={item.to}
                       onClick={() => setOpen(false)}
                       className={({ isActive }) =>
-                        `flex items-center gap-2 px-3 py-2 ml-2 rounded-md text-sm font-medium ${
+                        `flex items-center gap-2 px-3 py-2 ml-2 rounded-lg text-sm font-medium transition-colors ${
                           isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
                         }`
                       }
@@ -177,31 +177,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="gradient-warm px-3 sm:px-6 py-3 sm:py-4 shadow-warm-lg">
+      <header className="bg-[hsl(28,30%,16%)] px-3 sm:px-6 py-2.5 sm:py-3 shadow-[0_4px_24px_-4px_hsl(28_30%_16%/0.4)]">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-3xl">🍱</span>
-            <h1 className="text-2xl font-extrabold font-heading text-primary-foreground tracking-tight">
-              CASEGOSTO
-            </h1>
+            <img src="/logo.jpg" alt="Casegosto" className="h-9 sm:h-10 w-auto rounded-md" />
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-primary-foreground/80 hidden sm:inline">{user?.email}</span>
-            <Button variant="ghost" size="icon" onClick={signOut} title="Sair" className="text-primary-foreground hover:bg-white/20">
+            <span className="text-xs text-[hsl(35,25%,70%)] hidden sm:inline font-medium">{user?.email}</span>
+            <Button variant="ghost" size="icon" onClick={signOut} title="Sair" className="text-[hsl(35,25%,70%)] hover:text-[hsl(35,25%,88%)] hover:bg-white/10 transition-colors">
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </header>
 
-      <nav className="border-b border-border bg-card">
+      <nav className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-30">
         <div className="container mx-auto">
           <DesktopNav pathname={location.pathname} />
           <MobileNav pathname={location.pathname} />
         </div>
       </nav>
 
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 animate-fade-in max-w-full overflow-x-hidden">
+      <main className="container mx-auto px-4 sm:px-6 py-5 sm:py-8 animate-fade-in max-w-full overflow-x-hidden">
         {children}
       </main>
     </div>

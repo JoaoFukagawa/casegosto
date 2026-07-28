@@ -1,37 +1,23 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import StatusBadge from "@/components/StatusBadge";
-import { format, startOfDay, endOfDay, parseISO } from "date-fns";
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarDays, Truck } from "lucide-react";
+import { useHistoryOrders } from "@/hooks/useOrders";
 
 export default function Historico() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [filterEntregas, setFilterEntregas] = useState(false);
   const [paymentFilter, setPaymentFilter] = useState("todos");
 
-  const start = startOfDay(parseISO(selectedDate)).toISOString();
-  const end = endOfDay(parseISO(selectedDate)).toISOString();
-
-  const { data: orders, isLoading } = useQuery({
-    queryKey: ["historico", selectedDate],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*, order_items(*, menu_items(name))")
-        .gte("created_at", start)
-        .lte("created_at", end)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { data: orders, isLoading } = useHistoryOrders(selectedDate);
 
   const filteredOrders = (orders || []).filter((o) => {
     if (filterEntregas && !(o.delivery_type === "entrega" && o.status === "entregue")) return false;
@@ -61,42 +47,37 @@ export default function Historico() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h2 className="text-2xl font-extrabold font-heading text-foreground">Histórico de Pedidos</h2>
-          <p className="text-sm text-muted-foreground">Pesquise por data para ver os pedidos realizados</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button
-            variant={filterEntregas ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterEntregas(!filterEntregas)}
-            className="gap-1"
-          >
-            <Truck className="h-4 w-4" />
-            {filterEntregas ? "Só Entregas" : "Todas"}
-          </Button>
-          <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Pagamento" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              <SelectItem value="dinheiro">💵 Dinheiro</SelectItem>
-              <SelectItem value="pix">📱 PIX</SelectItem>
-              <SelectItem value="cartao">💳 Cartão</SelectItem>
-              <SelectItem value="haver">📋 Haver</SelectItem>
-            </SelectContent>
-          </Select>
-          <CalendarDays className="h-4 w-4 text-muted-foreground" />
-          <Input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-[180px]"
-          />
-        </div>
-      </div>
+      <PageHeader
+        title="Histórico de Pedidos"
+        subtitle="Pesquise por data para ver os pedidos realizados"
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant={filterEntregas ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilterEntregas(!filterEntregas)}
+              className="gap-1"
+            >
+              <Truck className="h-4 w-4" />
+              {filterEntregas ? "Só Entregas" : "Todas"}
+            </Button>
+            <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Pagamento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="dinheiro">💵 Dinheiro</SelectItem>
+                <SelectItem value="pix">📱 PIX</SelectItem>
+                <SelectItem value="cartao">💳 Cartão</SelectItem>
+                <SelectItem value="haver">📋 Haver</SelectItem>
+              </SelectContent>
+            </Select>
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            <Input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-[180px]" />
+          </div>
+        }
+      />
 
       {/* Resumo do dia */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -158,11 +139,9 @@ export default function Historico() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-muted-foreground text-center py-8">Carregando...</p>
+            <EmptyState message="Carregando..." />
           ) : !filteredOrders.length ? (
-            <p className="text-muted-foreground text-center py-8">
-              {filterEntregas ? "Nenhuma entrega nesta data 🛵" : paymentFilter !== "todos" ? "Nenhum pedido com esse pagamento 💳" : "Nenhum pedido nesta data 📋"}
-            </p>
+            <EmptyState message={filterEntregas ? "Nenhuma entrega nesta data." : paymentFilter !== "todos" ? "Nenhum pedido com esse pagamento." : "Nenhum pedido nesta data."} />
           ) : (
             <div className="overflow-auto">
               <Table>

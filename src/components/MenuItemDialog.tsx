@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, ImageIcon, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 interface MenuItem {
@@ -19,6 +19,7 @@ interface MenuItem {
   unit_type: string;
   stock: number | null;
   stock_by_unit: boolean;
+  photo_url: string | null;
 }
 
 interface Props {
@@ -35,7 +36,43 @@ export default function MenuItemDialog({ item }: Props) {
   const [unitType, setUnitType] = useState(item?.unit_type ?? "unidade");
   const [stock, setStock] = useState(item?.stock != null ? String(item.stock) : "");
   const [stockByUnit, setStockByUnit] = useState(item?.stock_by_unit ?? false);
+  const [photoUrl, setPhotoUrl] = useState(item?.photo_url ?? "");
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+
+  const uploadPhoto = async (file: File) => {
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `menu/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("menu-photos").upload(path, file);
+      if (uploadError?.message?.includes("bucket") || uploadError?.message?.includes("not found")) {
+        const { error: createError } = await supabase.storage.createBucket("menu-photos", { public: true });
+        if (createError) throw createError;
+        const retry = await supabase.storage.from("menu-photos").upload(path, file);
+        if (retry.error) throw retry.error;
+      } else if (uploadError) {
+        throw uploadError;
+      }
+      const { data: urlData } = supabase.storage.from("menu-photos").getPublicUrl(path);
+      setPhotoUrl(urlData.publicUrl);
+      toast.success("Foto enviada!");
+    } catch (e: any) {
+      toast.error("Erro ao enviar foto: " + e.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removePhoto = async () => {
+    if (photoUrl && photoUrl.includes("menu-photos")) {
+      const parts = photoUrl.split("/");
+      const path = parts.slice(parts.indexOf("menu-photos") + 1).join("/");
+      await supabase.storage.from("menu-photos").remove([path]);
+    }
+    setPhotoUrl("");
+  };
 
   useEffect(() => {
     if (open && item) {
@@ -59,6 +96,7 @@ export default function MenuItemDialog({ item }: Props) {
         unit_type: unitType,
         stock: stock ? parseInt(stock) : null,
         stock_by_unit: unitType === "kg" ? stockByUnit : false,
+        photo_url: photoUrl || null,
       };
       if (isEdit && item) {
         const { error } = await supabase.from("menu_items").update(payload).eq("id", item.id);
@@ -75,7 +113,7 @@ export default function MenuItemDialog({ item }: Props) {
       queryClient.invalidateQueries({ queryKey: ["menu_items_active"] });
       toast.success(isEdit ? "Item atualizado!" : "Item adicionado ao cardápio!");
       if (!isEdit) {
-        setName(""); setDescription(""); setPrice(""); setCategory("marmita"); setUnitType("unidade"); setStock(""); setStockByUnit(false);
+        setName(""); setDescription(""); setPrice(""); setCategory("marmita"); setUnitType("unidade"); setStock(""); setStockByUnit(false); setPhotoUrl("");
       }
       setOpen(false);
     },
@@ -153,6 +191,38 @@ export default function MenuItemDialog({ item }: Props) {
               </span>
             </label>
           )}
+
+          <div>
+            <Label>Foto do item</Label>
+            <div className="mt-1 flex items-center gap-3">
+              {photoUrl ? (
+                <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-border">
+                  <img src={photoUrl} alt="" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    className="absolute top-0 right-0 bg-destructive text-destructive-foreground text-xs px-1 rounded-bl"
+                    onClick={removePhoto}
+                  >
+                    X
+                  </button>
+                </div>
+              ) : (
+                <div className="w-16 h-16 rounded-lg border-2 border-dashed border-border flex items-center justify-center bg-muted/20">
+                  <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                </div>
+              )}
+              <input type="file" accept="image/*" className="hidden" ref={fileRef} onChange={(e) => e.target.files?.[0] && uploadPhoto(e.target.files[0])} />
+              <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+                <Upload className="h-3 w-3 mr-1" /> {uploading ? "Enviando..." : "Enviar foto"}
+              </Button>
+              <Input
+                placeholder="Ou cole uma URL"
+                value={photoUrl}
+                onChange={(e) => setPhotoUrl(e.target.value)}
+                className="flex-1 h-9 text-sm"
+              />
+            </div>
+          </div>
           <Button
             className="w-full gradient-warm text-primary-foreground shadow-warm font-heading font-bold"
             onClick={() => saveItem.mutate()}

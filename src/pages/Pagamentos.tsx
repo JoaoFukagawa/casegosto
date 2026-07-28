@@ -1,14 +1,20 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { Plus, Pencil, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import {
+  usePaymentMethods,
+  useSavePaymentMethod,
+  useDeletePaymentMethod,
+  useTogglePaymentMethod,
+  useMovePaymentMethod,
+} from "@/hooks/usePaymentMethods";
 
 type PaymentMethod = {
   id: string;
@@ -20,57 +26,14 @@ type PaymentMethod = {
   sort_order: number;
 };
 
-function slugify(s: string) {
-  return s
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-}
-
 function MethodDialog({ method, trigger }: { method?: PaymentMethod; trigger: React.ReactNode }) {
-  const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState(method?.label ?? "");
   const [emoji, setEmoji] = useState(method?.emoji ?? "💳");
   const [active, setActive] = useState(method?.active ?? true);
   const [isCash, setIsCash] = useState(method?.is_cash ?? false);
 
-  const save = useMutation({
-    mutationFn: async () => {
-      if (!label.trim()) throw new Error("Informe um nome");
-      if (method) {
-        const { error } = await supabase
-          .from("payment_methods")
-          .update({ label: label.trim(), emoji: emoji.trim() || "💳", active, is_cash: isCash })
-          .eq("id", method.id);
-        if (error) throw error;
-      } else {
-        const base = slugify(label) || `metodo_${Date.now()}`;
-        const { data: u } = await supabase.auth.getUser();
-        if (!u.user) throw new Error("Sessão expirada");
-        const { error } = await supabase.from("payment_methods").insert({
-          value: `${base}_${Date.now().toString(36)}`,
-          label: label.trim(),
-          emoji: emoji.trim() || "💳",
-          active,
-          is_cash: isCash,
-          sort_order: 999,
-          user_id: u.user.id,
-        });
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["payment_methods"] });
-      qc.invalidateQueries({ queryKey: ["payment_methods_active"] });
-      toast.success("Salvo!");
-      setOpen(false);
-    },
-    onError: (e: any) => toast.error(e.message || "Erro ao salvar"),
-  });
+  const save = useSavePaymentMethod(method ?? null);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -104,7 +67,7 @@ function MethodDialog({ method, trigger }: { method?: PaymentMethod; trigger: Re
             </div>
             <Switch checked={isCash} onCheckedChange={setIsCash} />
           </div>
-          <Button onClick={() => save.mutate()} disabled={save.isPending} className="w-full">
+          <Button onClick={() => save.mutate({ label, emoji, active, is_cash: isCash }, { onSuccess: () => setOpen(false) })} disabled={save.isPending} className="w-full">
             {save.isPending ? "Salvando..." : "Salvar"}
           </Button>
         </div>
@@ -114,87 +77,31 @@ function MethodDialog({ method, trigger }: { method?: PaymentMethod; trigger: Re
 }
 
 export default function Pagamentos() {
-  const qc = useQueryClient();
-  const { data: methods, isLoading } = useQuery({
-    queryKey: ["payment_methods"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("payment_methods")
-        .select("*")
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return data as PaymentMethod[];
-    },
-  });
-
-  const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("payment_methods").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["payment_methods"] });
-      qc.invalidateQueries({ queryKey: ["payment_methods_active"] });
-      toast.success("Removido!");
-    },
-    onError: (e: any) => toast.error(e.message || "Erro ao remover"),
-  });
-
-  const toggleActive = useMutation({
-    mutationFn: async (m: PaymentMethod) => {
-      const { error } = await supabase.from("payment_methods").update({ active: !m.active }).eq("id", m.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["payment_methods"] });
-      qc.invalidateQueries({ queryKey: ["payment_methods_active"] });
-    },
-  });
-
-  const move = useMutation({
-    mutationFn: async ({ m, dir }: { m: PaymentMethod; dir: -1 | 1 }) => {
-      const list = (methods || []).slice().sort((a, b) => a.sort_order - b.sort_order);
-      const idx = list.findIndex((x) => x.id === m.id);
-      const swapIdx = idx + dir;
-      if (swapIdx < 0 || swapIdx >= list.length) return;
-      const other = list[swapIdx];
-      const a = m.sort_order;
-      const b = other.sort_order;
-      const newA = a === b ? a + dir : b;
-      const newB = a === b ? a : a;
-      await supabase.from("payment_methods").update({ sort_order: newA }).eq("id", m.id);
-      await supabase.from("payment_methods").update({ sort_order: newB }).eq("id", other.id);
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["payment_methods"] }),
-  });
+  const { data: methods, isLoading } = usePaymentMethods();
+  const remove = useDeletePaymentMethod();
+  const toggleActive = useTogglePaymentMethod();
+  const move = useMovePaymentMethod(methods);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-extrabold font-heading text-foreground">Formas de pagamento</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Cadastre e organize as formas de pagamento aceitas
-          </p>
-        </div>
-        <MethodDialog
-          trigger={
-            <Button>
-              <Plus className="h-4 w-4 mr-2" /> Nova forma
-            </Button>
-          }
-        />
-      </div>
+      <PageHeader
+        title="Formas de pagamento"
+        subtitle="Cadastre e organize as formas de pagamento aceitas"
+        actions={
+          <MethodDialog
+            trigger={
+              <Button>
+                <Plus className="h-4 w-4 mr-2" /> Nova forma
+              </Button>
+            }
+          />
+        }
+      />
 
       {isLoading ? (
-        <p className="text-muted-foreground text-center py-8">Carregando...</p>
+        <EmptyState message="Carregando..." />
       ) : !methods?.length ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            Nenhuma forma de pagamento cadastrada.
-          </CardContent>
-        </Card>
+        <EmptyState message="Nenhuma forma de pagamento cadastrada." />
       ) : (
         <div className="space-y-2">
           {methods.map((m, i) => (

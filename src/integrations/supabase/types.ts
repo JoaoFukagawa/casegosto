@@ -139,6 +139,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          photo_url: string | null
           price: number
           stock: number | null
           stock_by_unit: boolean
@@ -153,6 +154,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          photo_url?: string | null
           price?: number
           stock?: number | null
           stock_by_unit?: boolean
@@ -167,6 +169,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          photo_url?: string | null
           price?: number
           stock?: number | null
           stock_by_unit?: boolean

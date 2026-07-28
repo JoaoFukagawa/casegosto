@@ -1,25 +1,14 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format, parseISO, startOfMonth, endOfMonth, subDays, differenceInDays } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { CalendarDays, Download, TrendingDown, FileBarChart, Package, TrendingUp, Trophy, BarChart3, Users } from "lucide-react";
-import StatsCard from "@/components/StatsCard";
-
-const EXPENSE_CATEGORIES = [
-  { value: "todos", label: "Todas as categorias" },
-  { value: "mercado", label: "🛒 Mercado" },
-  { value: "embalagens", label: "📦 Embalagens" },
-  { value: "gas", label: "🔥 Gás" },
-  { value: "entregador", label: "🛵 Entregador" },
-  { value: "outros", label: "📋 Outros" },
-];
+import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
+import { FileBarChart, Download } from "lucide-react";
+import { useExpenseReport } from "@/hooks/useExpenses";
+import { useSalesReport } from "@/hooks/useOrders";
+import { useInactiveClients } from "@/hooks/useRelatorios";
+import ExpenseReport from "@/components/relatorios/ExpenseReport";
+import SalesReport from "@/components/relatorios/SalesReport";
+import InactiveClientsReport from "@/components/relatorios/InactiveClientsReport";
 
 export default function Relatorios() {
   const today = new Date();
@@ -28,96 +17,17 @@ export default function Relatorios() {
   const [category, setCategory] = useState("todos");
   const [diasInativo, setDiasInativo] = useState(30);
 
-  const { data: expenses, isLoading } = useQuery({
-    queryKey: ["relatorios-expenses", startDate, endDate],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("expenses")
-        .select("*")
-        .gte("expense_date", startDate)
-        .lte("expense_date", endDate)
-        .order("expense_date", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { data: expenses, isLoading } = useExpenseReport(startDate, endDate);
 
-  const { data: salesRaw, isLoading: loadingSales } = useQuery({
-    queryKey: ["relatorios-sales", startDate, endDate],
-    queryFn: async () => {
-      const startIso = new Date(startDate + "T00:00:00").toISOString();
-      const endIso = new Date(endDate + "T23:59:59.999").toISOString();
-      const { data, error } = await supabase
-        .from("orders")
-        .select("id, status, created_at, order_items(id, quantity, unit_price, weight, menu_item_id, menu_items(name, category, unit_type))")
-        .gte("created_at", startIso)
-        .lte("created_at", endIso)
-        .neq("status", "cancelado");
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { data: salesRaw, isLoading: loadingSales } = useSalesReport(startDate, endDate);
 
-  // ===== Clientes inativos =====
-  const { data: clientesInativos, isLoading: loadingClientes } = useQuery({
-    queryKey: ["clientes-inativos", diasInativo],
-    queryFn: async () => {
-      const corte = subDays(today, diasInativo).toISOString();
-
-      // Busca todos os clientes
-      const { data: clientes, error: errClientes } = await supabase
-        .from("clientes")
-        .select("id, nome, telefone");
-      if (errClientes) throw errClientes;
-
-      // Busca o último pedido de cada cliente
-      const { data: pedidos, error: errPedidos } = await supabase
-        .from("orders")
-        .select("customer_name, created_at")
-        .order("created_at", { ascending: false });
-      if (errPedidos) throw errPedidos;
-
-      // Último pedido por cliente (comparando pelo nome normalizado)
-      const normalize = (s: string) => (s || "").toLowerCase().trim().replace(/\s+/g, " ");
-      const ultimoPedido: Record<string, string> = {};
-      for (const p of pedidos || []) {
-        const nome = normalize(p.customer_name || "");
-        if (nome && p.created_at && !ultimoPedido[nome]) {
-          ultimoPedido[nome] = p.created_at;
-        }
-      }
-
-      const todayMs = today.getTime();
-
-      // Filtra clientes que não compram há X dias ou nunca compraram
-      return (clientes || [])
-        .map((c) => {
-          const key = normalize(c.nome || "");
-          const ultimaCompra = key ? ultimoPedido[key] ?? null : null;
-          let diasSemComprar: number | null = null;
-          if (ultimaCompra) {
-            const t = new Date(ultimaCompra).getTime();
-            if (!Number.isNaN(t)) {
-              diasSemComprar = Math.max(0, Math.floor((todayMs - t) / 86400000));
-            }
-          }
-          return { ...c, ultimaCompra, diasSemComprar };
-        })
-        .filter((c) => !c.ultimaCompra || new Date(c.ultimaCompra) < new Date(corte))
-        .sort((a, b) => {
-          if (!a.ultimaCompra) return -1;
-          if (!b.ultimaCompra) return 1;
-          return new Date(a.ultimaCompra).getTime() - new Date(b.ultimaCompra).getTime();
-        });
-    },
-  });
+  const { data: clientesInativos, isLoading: loadingClientes } = useInactiveClients(diasInativo);
 
   const exportClientesCSV = () => {
     if (!clientesInativos?.length) return;
     const header = ["Nome", "Telefone", "Última compra", "Dias sem comprar"];
-    const rows = clientesInativos.map((c) => [
-      `"${(c.nome
- || "").replace(/"/g, '""')}"`,
+    const rows = (clientesInativos as any[]).map((c) => [
+      `"${(c.nome || "").replace(/"/g, '""')}"`,
       c.telefone || "",
       c.ultimaCompra ? format(new Date(c.ultimaCompra), "dd/MM/yyyy") : "Nunca comprou",
       c.diasSemComprar !== null ? String(c.diasSemComprar) : "—",
@@ -133,16 +43,9 @@ export default function Relatorios() {
   };
 
   type ProdAgg = {
-    menu_item_id: string;
-    name: string;
-    category: string;
-    unit_type: string;
-    qty: number;
-    entries: number;
-    revenue: number;
-    minPrice: number;
-    maxPrice: number;
-    prices: number[];
+    menu_item_id: string; name: string; category: string; unit_type: string;
+    qty: number; entries: number; revenue: number;
+    minPrice: number; maxPrice: number; prices: number[];
   };
 
   const productSales = useMemo(() => {
@@ -214,10 +117,10 @@ export default function Relatorios() {
   };
 
   const filtered = useMemo(() => {
-    return (expenses || []).filter((e) => category === "todos" || e.category === category);
+    return (expenses || []).filter((e: any) => category === "todos" || e.category === category);
   }, [expenses, category]);
 
-  const total = filtered.reduce((s, e) => s + Number(e.amount), 0);
+  const total = filtered.reduce((s: number, e: any) => s + Number(e.amount), 0);
   const count = filtered.length;
   const average = count > 0 ? total / count : 0;
 
@@ -229,10 +132,10 @@ export default function Relatorios() {
 
   const exportCSV = () => {
     const header = ["Data", "Descrição", "Categoria", "Valor"];
-    const rows = filtered.map((e) => [
+    const rows = filtered.map((e: any) => [
       format(parseISO(e.expense_date), "dd/MM/yyyy"),
       `"${e.description.replace(/"/g, '""')}"`,
-      EXPENSE_CATEGORIES.find((c) => c.value === e.category)?.label.replace(/^\S+\s/, "") || e.category,
+      e.category,
       Number(e.amount).toFixed(2).replace(".", ","),
     ]);
     const csv = [header, ...rows].map((r) => r.join(";")).join("\n");
@@ -254,293 +157,31 @@ export default function Relatorios() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h2 className="text-2xl font-extrabold font-heading text-foreground flex items-center gap-2">
-            <FileBarChart className="h-6 w-6 text-primary" /> Relatórios
-          </h2>
-          <p className="text-sm text-muted-foreground">Análise detalhada de despesas por período e categoria</p>
-        </div>
-        <Button onClick={exportCSV} disabled={!filtered.length}>
-          <Download className="h-4 w-4 mr-2" /> Exportar CSV
-        </Button>
-      </div>
+      <PageHeader
+        title={<span className="flex items-center gap-2"><FileBarChart className="h-6 w-6 text-primary" /> Relatórios</span>}
+        subtitle="Análise detalhada de despesas por período e categoria"
+        actions={<Button onClick={exportCSV} disabled={!filtered.length}><Download className="h-4 w-4 mr-2" /> Exportar CSV</Button>}
+      />
 
-      {/* Filtros */}
-      <Card>
-        <CardHeader><CardTitle className="font-heading text-base">Filtros</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div>
-              <Label htmlFor="start">Data inicial</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                <Input id="start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-[170px]" />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="end">Data final</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                <Input id="end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-[170px]" />
-              </div>
-            </div>
-            <div>
-              <Label>Categoria</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="w-[220px] mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {EXPENSE_CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => setQuickRange("hoje")}>Hoje</Button>
-            <Button variant="outline" size="sm" onClick={() => setQuickRange("mes")}>Este mês</Button>
-            <Button variant="outline" size="sm" onClick={() => setQuickRange("ano")}>Este ano</Button>
-          </div>
-        </CardContent>
-      </Card>
+      <ExpenseReport
+        startDate={startDate} endDate={endDate} category={category}
+        setStartDate={setStartDate} setEndDate={setEndDate} setCategory={setCategory}
+        setQuickRange={setQuickRange}
+        filtered={filtered} total={total} count={count} average={average}
+        byCategory={byCategory} isLoading={isLoading} exportCSV={exportCSV}
+      />
 
-      {/* Clientes inativos */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <h3 className="text-xl font-extrabold font-heading text-foreground flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" /> Clientes Inativos
-          </h3>
-          <Button onClick={exportClientesCSV} disabled={!clientesInativos?.length} variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" /> Exportar Excel
-          </Button>
-        </div>
+      <InactiveClientsReport
+        clientesInativos={clientesInativos} loadingClientes={loadingClientes}
+        diasInativo={diasInativo} setDiasInativo={setDiasInativo}
+        exportClientesCSV={exportClientesCSV}
+      />
 
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-end gap-4 flex-wrap">
-              <div>
-                <Label>Clientes sem comprar há mais de</Label>
-                <div className="flex items-center gap-2 mt-1">
-                  <Input
-                    type="number"
-                    min={1}
-                    value={diasInativo}
-                    onChange={(e) => setDiasInativo(Number(e.target.value))}
-                    className="w-24"
-                  />
-                  <span className="text-sm text-muted-foreground">dias</span>
-                </div>
-              </div>
-              <div className="text-sm text-muted-foreground pb-1">
-                {loadingClientes ? "Buscando..." : `${clientesInativos?.length || 0} cliente(s) encontrado(s)`}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            {loadingClientes ? (
-              <p className="text-center text-muted-foreground py-6">Carregando...</p>
-            ) : !clientesInativos?.length ? (
-              <p className="text-center text-muted-foreground py-6">Nenhum cliente inativo nesse período 🎉</p>
-            ) : (
-              <div className="overflow-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Telefone</TableHead>
-                      <TableHead>Última compra</TableHead>
-                      <TableHead className="text-right">Dias sem comprar</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {clientesInativos.map((c) => (
-                      <TableRow key={c.id}>
-                        <TableCell className="font-medium">{c.nome}</TableCell>
-                        <TableCell>{c.telefone || "—"}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {c.ultimaCompra ? format(new Date(c.ultimaCompra), "dd/MM/yyyy") : "Nunca comprou"}
-                        </TableCell>
-                        <TableCell className="text-right font-bold text-destructive">
-                          {c.diasSemComprar !== null ? `${c.diasSemComprar} dias` : "—"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Vendas de produtos */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <h3 className="text-xl font-extrabold font-heading text-foreground flex items-center gap-2">
-            <Package className="h-5 w-5 text-primary" /> Vendas de Produtos
-          </h3>
-          <Button onClick={exportSalesCSV} disabled={!productSales.length} variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" /> Exportar vendas
-          </Button>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <StatsCard title="Receita total" value={`R$ ${salesStats.totalRevenue.toFixed(2)}`} icon={TrendingUp} variant="success" />
-          <StatsCard title="Pedidos" value={String(salesStats.ordersCount)} icon={FileBarChart} />
-          <StatsCard title="Ticket médio" value={`R$ ${salesStats.avgTicketOrder.toFixed(2)}`} icon={BarChart3} />
-          <StatsCard title="Produtos diferentes" value={String(salesStats.distinct)} icon={Package} />
-          <StatsCard title="Unidades vendidas" value={String(salesStats.totalUnits)} icon={Package} />
-          <StatsCard title="Total em kg" value={`${salesStats.totalKg.toFixed(3)} kg`} icon={Package} />
-        </div>
-        {salesStats.top && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-heading text-base flex items-center gap-2">
-                <Trophy className="h-4 w-4 text-primary" /> Análise estatística (por produto)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <p className="text-xs text-muted-foreground">🏆 Mais vendido (receita)</p>
-                  <p className="font-bold font-heading">{salesStats.top.name}</p>
-                  <p className="text-xs text-primary">R$ {salesStats.top.revenue.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Receita média por produto</p>
-                  <p className="font-bold font-heading">R$ {(salesStats.totalRevenue / Math.max(1, salesStats.distinct)).toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Mediana de receita</p>
-                  <p className="font-bold font-heading">R$ {salesStats.median.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Desvio padrão</p>
-                  <p className="font-bold font-heading">R$ {salesStats.stdDev.toFixed(2)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        <Card>
-          <CardHeader><CardTitle className="font-heading text-lg">Detalhamento por produto</CardTitle></CardHeader>
-          <CardContent>
-            {loadingSales ? (
-              <p className="text-center text-muted-foreground py-6">Carregando...</p>
-            ) : !productSales.length ? (
-              <p className="text-center text-muted-foreground py-6">Nenhuma venda no período 📭</p>
-            ) : (
-              <div className="overflow-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Produto</TableHead>
-                      <TableHead>Categoria</TableHead>
-                      <TableHead className="text-right">Qtd vendida</TableHead>
-                      <TableHead className="text-right">Lançamentos</TableHead>
-                      <TableHead className="text-right">Preço médio</TableHead>
-                      <TableHead className="text-right">Mín / Máx</TableHead>
-                      <TableHead className="text-right">Receita</TableHead>
-                      <TableHead className="text-right">% Receita</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {productSales.map((p) => {
-                      const avgPrice = p.qty > 0 ? p.revenue / p.qty : 0;
-                      const pct = salesStats.totalRevenue > 0 ? (p.revenue / salesStats.totalRevenue) * 100 : 0;
-                      const qtyDisplay = p.unit_type === "kg" ? `${p.qty.toFixed(3)} kg` : `${p.qty} un`;
-                      const minP = p.minPrice === Infinity ? 0 : p.minPrice;
-                      return (
-                        <TableRow key={p.menu_item_id}>
-                          <TableCell className="font-medium">{p.name}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{p.category}</TableCell>
-                          <TableCell className="text-right font-medium">{qtyDisplay}</TableCell>
-                          <TableCell className="text-right text-sm">{p.entries}</TableCell>
-                          <TableCell className="text-right text-sm">R$ {avgPrice.toFixed(2)}</TableCell>
-                          <TableCell className="text-right text-xs text-muted-foreground">R$ {minP.toFixed(2)} / R$ {p.maxPrice.toFixed(2)}</TableCell>
-                          <TableCell className="text-right font-bold text-primary">R$ {p.revenue.toFixed(2)}</TableCell>
-                          <TableCell className="text-right text-sm">{pct.toFixed(1)}%</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Despesas */}
-      <div className="border-t border-border pt-4">
-        <h3 className="text-xl font-extrabold font-heading text-foreground flex items-center gap-2 mb-2">
-          <TrendingDown className="h-5 w-5 text-destructive" /> Despesas
-        </h3>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatsCard title="Total de Despesas" value={`R$ ${total.toFixed(2)}`} icon={TrendingDown} variant="warning" />
-        <StatsCard title="Quantidade" value={String(count)} icon={FileBarChart} />
-        <StatsCard title="Ticket médio" value={`R$ ${average.toFixed(2)}`} icon={FileBarChart} />
-      </div>
-      {Object.keys(byCategory).length > 0 && (
-        <Card>
-          <CardHeader><CardTitle className="font-heading text-lg">Por Categoria</CardTitle></CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              {EXPENSE_CATEGORIES.filter((c) => c.value !== "todos").map((cat) => {
-                const val = byCategory[cat.value] ?? 0;
-                if (val === 0) return null;
-                const pct = total > 0 ? (val / total) * 100 : 0;
-                return (
-                  <div key={cat.value} className="rounded-lg border border-border p-3">
-                    <p className="text-xs text-muted-foreground">{cat.label}</p>
-                    <p className="text-lg font-bold font-heading text-foreground">R$ {val.toFixed(2)}</p>
-                    <p className="text-xs text-primary font-medium">{pct.toFixed(1)}%</p>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-heading text-lg">
-            Despesas — {format(parseISO(startDate), "dd/MM/yyyy", { locale: ptBR })} a {format(parseISO(endDate), "dd/MM/yyyy", { locale: ptBR })}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <p className="text-center text-muted-foreground py-6">Carregando...</p>
-          ) : !filtered.length ? (
-            <p className="text-center text-muted-foreground py-6">Nenhuma despesa encontrada com esses filtros 📭</p>
-          ) : (
-            <div className="overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((exp) => (
-                    <TableRow key={exp.id}>
-                      <TableCell className="text-sm">{format(parseISO(exp.expense_date), "dd/MM/yyyy")}</TableCell>
-                      <TableCell className="font-medium">{exp.description}</TableCell>
-                      <TableCell className="text-sm">{EXPENSE_CATEGORIES.find((c) => c.value === exp.category)?.label ?? exp.category}</TableCell>
-                      <TableCell className="text-right font-bold text-destructive">R$ {Number(exp.amount).toFixed(2)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <SalesReport
+        productSales={productSales} salesStats={salesStats}
+        loadingSales={loadingSales} startDate={startDate} endDate={endDate}
+        exportSalesCSV={exportSalesCSV}
+      />
     </div>
   );
 }

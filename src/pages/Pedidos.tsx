@@ -1,22 +1,23 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import NewOrderDialog from "@/components/NewOrderDialog";
 import EditOrderDialog from "@/components/EditOrderDialog";
 import StatusBadge from "@/components/StatusBadge";
 import PrintOrderCoupon from "@/components/PrintOrderCoupon";
+import PageHeader from "@/components/PageHeader";
+import SearchInput from "@/components/SearchInput";
+import EmptyState from "@/components/EmptyState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, startOfDay as startOfDayFn, endOfDay as endOfDayFn, parseISO } from "date-fns";
 import { toast } from "sonner";
-import { Trash2, Truck, Store, MapPin, Copy, Search, CalendarDays } from "lucide-react";
+import { Trash2, Truck, Store, MapPin, Copy, CalendarDays } from "lucide-react";
+import { useOrders, useHaverOrders, useUpdateOrderStatus, useDeleteOrder } from "@/hooks/useOrders";
 
 const statuses = ["pendente", "preparando", "pronto", "entregue", "cancelado"];
 
 export default function Pedidos() {
-  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("todos");
   const [statusFilter, setStatusFilter] = useState("todos");
@@ -25,73 +26,10 @@ export default function Pedidos() {
   const dayStart = startOfDayFn(parseISO(selectedDate)).toISOString();
   const dayEnd = endOfDayFn(parseISO(selectedDate)).toISOString();
 
-  const { data: orders, isLoading } = useQuery({
-    queryKey: ["orders", dayStart],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*, order_items(*, menu_items(name)), order_payments(*)")
-        .gte("created_at", dayStart)
-        .lte("created_at", dayEnd)
-        .order("delivery_time", { ascending: true, nullsFirst: false })
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-    refetchInterval: 10000,
-  });
-
-  // All "haver" orders (across all days)
-  const { data: haverOrders } = useQuery({
-    queryKey: ["orders_haver"],
-    queryFn: async () => {
-      // Order IDs that contain any haver payment split
-      const { data: haverPayments } = await supabase
-        .from("order_payments")
-        .select("order_id")
-        .eq("method_value", "haver");
-      const ids = Array.from(new Set((haverPayments || []).map((p: any) => p.order_id)));
-
-      // Build OR clause: orders with primary haver OR in the split list
-      const orFilter = ids.length
-        ? `payment_method.eq.haver,id.in.(${ids.join(",")})`
-        : "payment_method.eq.haver";
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*, order_items(*, menu_items(name)), order_payments(*)")
-        .or(orFilter)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-    refetchInterval: 10000,
-  });
-
-  const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase.from("orders").update({ status }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: ["orders_haver"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      toast.success("Status atualizado!");
-    },
-  });
-
-  const deleteOrder = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("orders").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: ["orders_haver"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      toast.success("Pedido excluído!");
-    },
-  });
+  const { data: orders, isLoading } = useOrders(dayStart, dayEnd);
+  const { data: haverOrders } = useHaverOrders();
+  const updateStatus = useUpdateOrderStatus();
+  const deleteOrder = useDeleteOrder();
 
   const showingHaver = paymentFilter === "haver_todos";
 
@@ -248,27 +186,19 @@ export default function Pedidos() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-extrabold font-heading text-foreground">Pedidos</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            <span className="font-bold text-warning">{pendingCount}</span> pedido(s) pendente(s) ainda hoje
-          </p>
-        </div>
-        <NewOrderDialog />
-      </div>
+      <PageHeader
+        title="Pedidos"
+        subtitle={<><span className="font-bold text-warning">{pendingCount}</span> pedido(s) pendente(s) ainda hoje</>}
+        actions={<NewOrderDialog />}
+      />
 
       {/* Search and filters */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Pesquisar por nome do cliente..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Pesquisar por nome do cliente..."
+        />
         <div className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-muted-foreground" />
           <Input
@@ -308,17 +238,9 @@ export default function Pedidos() {
       </div>
 
       {isLoading ? (
-        <p className="text-muted-foreground text-center py-8">Carregando...</p>
+        <EmptyState message="Carregando..." />
       ) : !displayOrders.length ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              {search || paymentFilter !== "todos"
-                ? "Nenhum pedido encontrado com esse filtro 🔍"
-                : "Nenhum pedido encontrado. Crie o primeiro! 🍱"}
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState message={search || paymentFilter !== "todos" ? "Nenhum pedido encontrado com esse filtro." : "Nenhum pedido encontrado. Crie o primeiro!"} />
       ) : (
         <div className="space-y-4">
           {showingHaver && (

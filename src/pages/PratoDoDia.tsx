@@ -1,28 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { Trophy, UtensilsCrossed } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { usePratosRaw } from "@/hooks/usePratos";
 
 export default function PratoDoDia() {
   const today = new Date();
   const monthStart = format(startOfMonth(today), "yyyy-MM-dd");
   const monthEnd = format(endOfMonth(today), "yyyy-MM-dd");
 
-  const { data: pratos } = useQuery({
-    queryKey: ["pratos_full", monthStart],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("pratos")
-        .select("nome_prato, data, quantidade_vendida")
-        .gte("data", monthStart)
-        .lte("data", monthEnd)
-        .order("data", { ascending: false });
-      if (error) throw error;
-      return data as { nome_prato: string; data: string; quantidade_vendida: number }[];
-    },
-  });
+  const { data: pratos } = usePratosRaw(monthStart, monthEnd);
 
   const ranking = (() => {
     const map: Record<string, { nome: string; dias: Set<string>; qtd: number }> = {};
@@ -48,15 +37,10 @@ export default function PratoDoDia() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-extrabold font-heading text-foreground flex items-center gap-2">
-          <UtensilsCrossed className="h-6 w-6 text-primary" />
-          Prato do Dia
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Histórico e ranking dos pratos vendidos em {format(today, "MMMM", { locale: ptBR })}
-        </p>
-      </div>
+      <PageHeader
+        title={<span className="flex items-center gap-2"><UtensilsCrossed className="h-6 w-6 text-primary" /> Prato do Dia</span>}
+        subtitle={`Histórico e ranking dos pratos vendidos em ${format(today, "MMMM", { locale: ptBR })}`}
+      />
 
       <Card>
         <CardHeader>
@@ -86,9 +70,7 @@ export default function PratoDoDia() {
               ))}
             </div>
           ) : (
-            <p className="text-center text-muted-foreground py-6 text-sm">
-              Ainda não há pratos lançados este mês. Adicione o "Prato do dia" ao criar um pedido. 🍱
-            </p>
+            <EmptyState message='Ainda não há pratos lançados este mês. Adicione o "Prato do dia" ao criar um pedido.' />
           )}
         </CardContent>
       </Card>
@@ -116,7 +98,7 @@ export default function PratoDoDia() {
               ))}
             </div>
           ) : (
-            <p className="text-center text-muted-foreground py-6 text-sm">Sem registros este mês.</p>
+            <EmptyState message="Sem registros este mês." />
           )}
         </CardContent>
       </Card>

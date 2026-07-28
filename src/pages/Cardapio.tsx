@@ -1,103 +1,25 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import MenuItemDialog from "@/components/MenuItemDialog";
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Trash2, Package, TrendingUp } from "lucide-react";
-import { toast } from "sonner";
+import { Share2, Trash2, Package, TrendingUp } from "lucide-react";
+import { useMenuItems, useToggleActive, useUpdateStock, useUpdateStockByUnit, useDeleteMenuItem } from "@/hooks/useMenuItems";
+import { useSoldToday } from "@/hooks/usePratos";
 
 export default function Cardapio() {
-  const queryClient = useQueryClient();
-
-  const { data: items, isLoading } = useQuery({
-    queryKey: ["menu_items"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("menu_items")
-        .select("*")
-        .order("category")
-        .order("name");
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Get today's sold quantities per menu item
+  const { data: items, isLoading } = useMenuItems();
   const today = new Date();
   const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
-
-  const { data: soldToday } = useQuery({
-    queryKey: ["sold_today", startOfDay],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("order_items")
-        .select("menu_item_id, quantity, weight, orders!inner(created_at, status)")
-        .gte("orders.created_at", startOfDay);
-      if (error) throw error;
-
-      const sold: Record<string, { qty: number; weight: number }> = {};
-      for (const item of data || []) {
-        const order = item.orders as any;
-        if (order?.status === "cancelado") continue;
-        if (!sold[item.menu_item_id]) sold[item.menu_item_id] = { qty: 0, weight: 0 };
-        sold[item.menu_item_id].qty += item.quantity;
-        if (item.weight) sold[item.menu_item_id].weight += item.weight;
-      }
-      return sold;
-    },
-    refetchInterval: 10000,
-  });
-
-  const toggleActive = useMutation({
-    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase.from("menu_items").update({ active }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["menu_items"] });
-      queryClient.invalidateQueries({ queryKey: ["menu_items_active"] });
-    },
-  });
-
-  const updateStock = useMutation({
-    mutationFn: async ({ id, stock }: { id: string; stock: number | null }) => {
-      const { error } = await supabase.from("menu_items").update({ stock }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["menu_items"] });
-      queryClient.invalidateQueries({ queryKey: ["menu_items_active"] });
-      toast.success("Estoque atualizado!");
-    },
-  });
-
-  const updateStockByUnit = useMutation({
-    mutationFn: async ({ id, stock_by_unit }: { id: string; stock_by_unit: boolean }) => {
-      const { error } = await supabase.from("menu_items").update({ stock_by_unit }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["menu_items"] });
-      queryClient.invalidateQueries({ queryKey: ["menu_items_active"] });
-      toast.success("Modo de estoque atualizado!");
-    },
-  });
-
-  const deleteItem = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("menu_items").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["menu_items"] });
-      queryClient.invalidateQueries({ queryKey: ["menu_items_active"] });
-      toast.success("Item removido!");
-    },
-    onError: () => toast.error("Erro ao remover. Pode haver pedidos vinculados."),
-  });
+  const { data: soldToday } = useSoldToday(startOfDay);
+  const toggleActive = useToggleActive();
+  const updateStock = useUpdateStock();
+  const updateStockByUnit = useUpdateStockByUnit();
+  const deleteItem = useDeleteMenuItem();
 
   const grouped = items?.reduce((acc, item) => {
     (acc[item.category] ??= []).push(item);
@@ -106,19 +28,29 @@ export default function Cardapio() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-extrabold font-heading text-foreground">Cardápio</h2>
-        <MenuItemDialog />
-      </div>
+      <PageHeader
+        title="Cardápio"
+        actions={
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}/cardapio-online`);
+                toast.success("Link copiado!");
+              }}
+            >
+              <Share2 className="h-4 w-4 mr-1" /> Compartilhar
+            </Button>
+            <MenuItemDialog />
+          </div>
+        }
+      />
 
       {isLoading ? (
-        <p className="text-muted-foreground text-center py-8">Carregando...</p>
+        <EmptyState message="Carregando..." />
       ) : !items?.length ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">Nenhum item no cardápio. Adicione o primeiro! 🍽️</p>
-          </CardContent>
-        </Card>
+        <EmptyState message="Nenhum item no cardápio. Adicione o primeiro!" />
       ) : (
         Object.entries(grouped!).map(([category, categoryItems]) => (
           <div key={category}>
