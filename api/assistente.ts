@@ -173,7 +173,7 @@ ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
 
     for (let iter = 0; iter < 4; iter++) {
       const body: any = {
-        model: "claude-sonnet-4-20250514",
+        model: "claude-3-5-sonnet-20241022",
         max_tokens: 4096,
         system: systemContent,
         messages: anthropicMessages,
