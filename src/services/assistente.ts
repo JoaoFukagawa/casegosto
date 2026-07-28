@@ -2,11 +2,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth } from "date-fns";
 
 export async function sendChatMessage(messages: { role: string; content: string }[]) {
-  const { data, error } = await supabase.functions.invoke("assistente-financeiro", {
-    body: { messages },
+  const session = await supabase.auth.getSession();
+  const token = session.data.session?.access_token;
+
+  const res = await fetch("/api/assistente", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ messages }),
   });
-  if (error) throw error;
-  return data as { reply: string; actions: any[]; paid: number };
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Erro de conexão" }));
+    throw new Error(err.error || `Erro ${res.status}`);
+  }
+
+  return res.json() as Promise<{ reply: string; actions: any[]; paid: number }>;
 }
 
 export async function getMonthRevenue() {
