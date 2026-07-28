@@ -10,6 +10,13 @@ import { ptBR } from "date-fns/locale";
 import { useDashboardTodayOrders, useUpdateOrderStatus, useDeleteOrder } from "@/hooks/useOrders";
 import { useNavigate } from "react-router-dom";
 
+const paymentLabels: Record<string, string> = {
+  pix: "PIX",
+  dinheiro: "Dinheiro",
+  cartao: "Cartão",
+  haver: "Haver",
+};
+
 const nextStatus: Record<string, string> = {
   pendente: "preparando",
   preparando: "pronto",
@@ -90,6 +97,11 @@ export default function Dashboard() {
                           {format(new Date(order.created_at), "HH:mm")}
                           {order.delivery_time && ` · ⏰ ${order.delivery_time.slice(0, 5)}`}
                         </p>
+                        {order.payment_method && (
+                          <span className="inline-block mt-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-muted text-muted-foreground">
+                            {paymentLabels[order.payment_method] || order.payment_method}
+                          </span>
+                        )}
                       </div>
                       <div className="text-right shrink-0">
                         <p className="font-bold font-heading text-primary">R$ {order.total.toFixed(2)}</p>
@@ -143,7 +155,10 @@ export default function Dashboard() {
                   <div key={order.id} className="flex items-center justify-between px-4 py-3">
                     <div>
                       <p className="font-medium text-foreground text-sm">{order.customer_name}</p>
-                      <p className="text-xs text-muted-foreground">{format(new Date(order.created_at), "HH:mm")}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(order.created_at), "HH:mm")}
+                        {order.payment_method && ` · ${paymentLabels[order.payment_method] || order.payment_method}`}
+                      </p>
                     </div>
                     <span className="font-bold font-heading text-primary text-sm">R$ {order.total.toFixed(2)}</span>
                   </div>
