@@ -1,14 +1,16 @@
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format, parseISO } from "date-fns";
+import { Progress } from "@/components/ui/progress";
+import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarDays, Download, TrendingDown, FileBarChart } from "lucide-react";
 import StatsCard from "@/components/StatsCard";
+import { useExpenseReport } from "@/hooks/useExpenses";
 
 const EXPENSE_CATEGORIES = [
   { value: "todos", label: "Todas as categorias" },
@@ -19,86 +21,121 @@ const EXPENSE_CATEGORIES = [
   { value: "outros", label: "📋 Outros" },
 ];
 
-export default function ExpenseReport({
-  startDate, endDate, category, setStartDate, setEndDate, setCategory, setQuickRange,
-  filtered, total, count, average, byCategory, isLoading, exportCSV,
-}: {
-  startDate: string; endDate: string; category: string;
-  setStartDate: (v: string) => void; setEndDate: (v: string) => void; setCategory: (v: string) => void;
-  setQuickRange: (type: "hoje" | "mes" | "ano") => void;
-  filtered: any[]; total: number; count: number; average: number;
-  byCategory: Record<string, number>; isLoading: boolean;
-  exportCSV: () => void;
-}) {
-  return (
-    <>
-      <Card>
-        <CardHeader><CardTitle className="font-heading text-base">Filtros</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div>
-              <Label htmlFor="start">Data inicial</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                <Input id="start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-[170px]" />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="end">Data final</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                <Input id="end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-[170px]" />
-              </div>
-            </div>
-            <div>
-              <Label>Categoria</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="w-[220px] mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {EXPENSE_CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => setQuickRange("hoje")}>Hoje</Button>
-            <Button variant="outline" size="sm" onClick={() => setQuickRange("mes")}>Este mês</Button>
-            <Button variant="outline" size="sm" onClick={() => setQuickRange("ano")}>Este ano</Button>
-          </div>
-        </CardContent>
-      </Card>
+export default function ExpenseReport() {
+  const today = new Date();
+  const [startDate, setStartDate] = useState(format(startOfMonth(today), "yyyy-MM-dd"));
+  const [endDate, setEndDate] = useState(format(endOfMonth(today), "yyyy-MM-dd"));
+  const [category, setCategory] = useState("todos");
 
-      <div className="border-t border-border pt-4">
-        <h3 className="text-xl font-extrabold font-heading text-foreground flex items-center gap-2 mb-2">
-          <TrendingDown className="h-5 w-5 text-destructive" /> Despesas
-        </h3>
+  const { data: expenses, isLoading } = useExpenseReport(startDate, endDate);
+
+  const filtered = useMemo(() => {
+    return (expenses || []).filter((e: any) => category === "todos" || e.category === category);
+  }, [expenses, category]);
+
+  const total = filtered.reduce((s: number, e: any) => s + Number(e.amount), 0);
+  const count = filtered.length;
+  const average = count > 0 ? total / count : 0;
+
+  const byCategory = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const e of filtered) map[e.category] = (map[e.category] || 0) + Number(e.amount);
+    return map;
+  }, [filtered]);
+
+  const exportCSV = () => {
+    const header = ["Data", "Descrição", "Categoria", "Valor"];
+    const rows = filtered.map((e: any) => [
+      format(parseISO(e.expense_date), "dd/MM/yyyy"),
+      `"${e.description.replace(/"/g, '""')}"`,
+      e.category,
+      Number(e.amount).toFixed(2).replace(".", ","),
+    ]);
+    const csv = [header, ...rows].map((r) => r.join(";")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `despesas_${startDate}_${endDate}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const setQuickRange = (type: "hoje" | "mes" | "ano") => {
+    const now = new Date();
+    if (type === "hoje") { const d = format(now, "yyyy-MM-dd"); setStartDate(d); setEndDate(d); }
+    else if (type === "mes") { setStartDate(format(startOfMonth(now), "yyyy-MM-dd")); setEndDate(format(endOfMonth(now), "yyyy-MM-dd")); }
+    else { setStartDate(format(new Date(now.getFullYear(), 0, 1), "yyyy-MM-dd")); setEndDate(format(new Date(now.getFullYear(), 11, 31), "yyyy-MM-dd")); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end gap-3">
+        <div>
+          <Label htmlFor="start">Data inicial</Label>
+          <div className="flex items-center gap-2 mt-1">
+            <CalendarDays className="h-4 w-4 text-[var(--color-text-secondary)]" />
+            <Input id="start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-[170px]" />
+          </div>
+        </div>
+        <div>
+          <Label htmlFor="end">Data final</Label>
+          <div className="flex items-center gap-2 mt-1">
+            <CalendarDays className="h-4 w-4 text-[var(--color-text-secondary)]" />
+            <Input id="end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-[170px]" />
+          </div>
+        </div>
+        <div>
+          <Label>Categoria</Label>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger className="w-[220px] mt-1"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {EXPENSE_CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex gap-2 pb-0.5">
+          <Button variant="outline" size="sm" onClick={() => setQuickRange("hoje")}>Hoje</Button>
+          <Button variant="outline" size="sm" onClick={() => setQuickRange("mes")}>Mês</Button>
+          <Button variant="outline" size="sm" onClick={() => setQuickRange("ano")}>Ano</Button>
+        </div>
+        <Button onClick={exportCSV} disabled={!filtered.length} size="sm" className="ml-auto">
+          <Download className="h-4 w-4 mr-2" /> Exportar CSV
+        </Button>
       </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatsCard title="Total de Despesas" value={`R$ ${total.toFixed(2)}`} icon={TrendingDown} variant="warning" />
         <StatsCard title="Quantidade" value={String(count)} icon={FileBarChart} />
         <StatsCard title="Ticket médio" value={`R$ ${average.toFixed(2)}`} icon={FileBarChart} />
       </div>
+
       {Object.keys(byCategory).length > 0 && (
-        <Card>
-          <CardHeader><CardTitle className="font-heading text-lg">Por Categoria</CardTitle></CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              {EXPENSE_CATEGORIES.filter((c) => c.value !== "todos").map((cat) => {
-                const val = byCategory[cat.value] ?? 0;
-                if (val === 0) return null;
-                const pct = total > 0 ? (val / total) * 100 : 0;
-                return (
-                  <div key={cat.value} className="rounded-lg border border-border p-3">
-                    <p className="text-xs text-muted-foreground">{cat.label}</p>
-                    <p className="text-lg font-bold font-heading text-foreground">R$ {val.toFixed(2)}</p>
-                    <p className="text-xs text-primary font-medium">{pct.toFixed(1)}%</p>
+        <div>
+          <h3 className="text-[13px] font-semibold uppercase tracking-[1.2px] text-[var(--color-text-primary)] opacity-70 mb-3">
+            Por Categoria
+          </h3>
+          <div className="space-y-3">
+            {EXPENSE_CATEGORIES.filter((c) => c.value !== "todos").map((cat) => {
+              const val = byCategory[cat.value] ?? 0;
+              if (val === 0) return null;
+              const pct = total > 0 ? (val / total) * 100 : 0;
+              return (
+                <div key={cat.value}>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="font-medium text-[var(--color-text-primary)]">{cat.label}</span>
+                    <span className="text-[var(--color-text-secondary)]">
+                      R$ {val.toFixed(2)} <span className="text-[var(--color-text-muted)]">· {pct.toFixed(1)}%</span>
+                    </span>
                   </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                  <Progress value={pct} className="h-1.5 [&>div]:bg-[var(--color-accent)]" />
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
+
       <Card>
         <CardHeader>
           <CardTitle className="font-heading text-lg">
@@ -107,9 +144,9 @@ export default function ExpenseReport({
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-center text-muted-foreground py-6">Carregando...</p>
+            <p className="text-center text-[var(--color-text-secondary)] py-6">Carregando...</p>
           ) : !filtered.length ? (
-            <p className="text-center text-muted-foreground py-6">Nenhuma despesa encontrada com esses filtros 📭</p>
+            <p className="text-center text-[var(--color-text-secondary)] py-6">Nenhuma despesa encontrada com esses filtros 📭</p>
           ) : (
             <div className="overflow-auto">
               <Table>
@@ -127,7 +164,7 @@ export default function ExpenseReport({
                       <TableCell className="text-sm">{format(parseISO(exp.expense_date), "dd/MM/yyyy")}</TableCell>
                       <TableCell className="font-medium">{exp.description}</TableCell>
                       <TableCell className="text-sm">{EXPENSE_CATEGORIES.find((c) => c.value === exp.category)?.label ?? exp.category}</TableCell>
-                      <TableCell className="text-right font-bold text-destructive">R$ {Number(exp.amount).toFixed(2)}</TableCell>
+                      <TableCell className="text-right font-bold text-[var(--color-danger)]">R$ {Number(exp.amount).toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -136,6 +173,6 @@ export default function ExpenseReport({
           )}
         </CardContent>
       </Card>
-    </>
+    </div>
   );
 }
