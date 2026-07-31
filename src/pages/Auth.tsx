@@ -46,8 +46,12 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <span className="text-5xl mb-2">🍱</span>
-          <CardTitle className="font-heading text-2xl">CASEGOSTO</CardTitle>
+          <div className="flex justify-center mb-3">
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)]">
+              <img src="/logo.jpg" alt="Casegosto" className="h-11 w-11 rounded-lg object-cover" />
+            </div>
+          </div>
+          <CardTitle className="font-heading text-2xl tracking-[1.5px]">CASEGOSTO</CardTitle>
           <p className="text-muted-foreground text-sm">
             {isLogin ? "Entre na sua conta" : "Crie sua conta"}
           </p>

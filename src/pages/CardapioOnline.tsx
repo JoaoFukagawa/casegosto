@@ -104,9 +104,9 @@ export default function CardapioOnline() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-[hsl(28,30%,16%)] px-4 py-4 text-center">
+      <header className="bg-[var(--color-surface)] border-b border-[var(--color-border)] px-4 py-4 text-center">
         <img src="/logo.jpg" alt="Casegosto" className="h-10 mx-auto mb-1" />
-        <p className="text-[hsl(35,25%,70%)] text-sm">Faça seu pedido online!</p>
+        <p className="text-[var(--color-text-secondary)] text-sm">Faça seu pedido online!</p>
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 space-y-6">

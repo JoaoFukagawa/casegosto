@@ -7,42 +7,44 @@ interface StatsCardProps {
   icon: LucideIcon;
   description?: string;
   variant?: "default" | "primary" | "success" | "warning";
+  highlight?: boolean;
 }
-
-const variantStyles = {
-  default: "bg-card",
-  primary: "bg-primary/5 border-primary/20",
-  success: "bg-success/5 border-success/20",
-  warning: "bg-warning/5 border-warning/20",
-};
-
-const iconStyles = {
-  default: "bg-muted text-muted-foreground",
-  primary: "bg-primary/10 text-primary",
-  success: "bg-success/10 text-success",
-  warning: "bg-warning/10 text-warning",
-};
 
 function getFontSize(value: string | number): string {
   const len = String(value).length;
-  if (len <= 5) return "text-2xl";
+  if (len <= 5) return "text-[26px]";
   if (len <= 7) return "text-xl";
   if (len <= 9) return "text-base";
   if (len <= 12) return "text-sm";
   return "text-xs";
 }
 
-export default function StatsCard({ title, value, icon: Icon, description, variant = "default" }: StatsCardProps) {
+export default function StatsCard({ title, value, icon: Icon, description, variant = "default", highlight }: StatsCardProps) {
+  const iconColor = {
+    default: "text-[var(--color-accent)]",
+    primary: "text-[var(--color-accent)]",
+    success: "text-[var(--color-success)]",
+    warning: "text-[var(--color-warning)]",
+  }[variant];
+
   return (
-    <Card className={`${variantStyles[variant]} animate-slide-in`}>
-      <CardContent className="flex items-center gap-3 p-4">
-        <div className={`rounded-xl p-2.5 flex-shrink-0 ${iconStyles[variant]}`}>
-          <Icon className="h-5 w-5" />
-        </div>
+    <Card
+      className={`card-hover animate-slide-in rounded-2xl border border-[var(--color-border)] ${
+        highlight
+          ? "border-l-[3px] !border-l-[var(--color-warning)] bg-[var(--color-warning-bg)]"
+          : "bg-[var(--color-surface)]"
+      }`}
+    >
+      <CardContent className="flex items-start gap-4 p-6">
+        <Icon className={`h-5 w-5 flex-shrink-0 mt-1 ${iconColor}`} />
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium text-muted-foreground leading-tight">{title}</p>
-          <p className={`${getFontSize(value)} font-bold font-heading text-foreground leading-tight whitespace-nowrap truncate`}>{value}</p>
-          {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
+          <p className="text-[11px] font-medium uppercase tracking-[1px] text-[var(--color-text-secondary)] leading-tight">
+            {title}
+          </p>
+          <p className={`${getFontSize(value)} font-bold font-heading text-[var(--color-text-primary)] leading-tight whitespace-nowrap truncate mt-1`}>
+            {value}
+          </p>
+          {description && <p className="text-xs text-[var(--color-text-secondary)] mt-1">{description}</p>}
         </div>
       </CardContent>
     </Card>

@@ -1,60 +1,167 @@
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 40 25% 98%;
-    --foreground: 28 25% 13%;
+  :root[data-theme="dark"] {
+    /* CASEGOSTO design tokens — dark */
+    --color-bg: #0F0D0B;
+    --color-surface: #1C1916;
+    --color-surface-hover: #252119;
+    --color-surface-secondary: #252119;
+    --color-border: #2E2920;
+    --color-border-strong: #3a342a;
+    --color-accent: #C8852A;
+    --color-accent-hover: #E09A3A;
+    --color-accent-muted: rgba(200, 133, 42, 0.12);
+    --color-accent-text: #0F0D0B;
+    --color-text-primary: #F5F0E8;
+    --color-text-secondary: #9E9488;
+    --color-text-muted: #5C5650;
+    --color-text-inverse: #FFFFFF;
+    --color-success: #4A9C6F;
+    --color-success-bg: rgba(74, 156, 111, 0.12);
+    --color-warning: #C8852A;
+    --color-warning-bg: rgba(200, 133, 42, 0.12);
+    --color-danger: #B85450;
+    --color-danger-bg: rgba(184, 84, 80, 0.12);
 
-    --card: 0 0% 100%;
-    --card-foreground: 28 25% 13%;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px -4px rgba(0, 0, 0, 0.35);
+    --shadow-hover: 0 8px 32px -8px hsl(35 65% 47% / 0.15);
+    --shadow-button: 0 4px 20px -4px hsl(35 65% 47% / 0.25);
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 28 25% 13%;
+    /* shadcn mappings */
+    --background: 30 15% 5%;
+    --foreground: 37 39% 94%;
 
-    --primary: 30 55% 50%;
-    --primary-foreground: 0 0% 100%;
+    --card: 30 12% 10%;
+    --card-foreground: 37 39% 94%;
 
-    --secondary: 35 30% 90%;
-    --secondary-foreground: 28 25% 20%;
+    --popover: 30 12% 10%;
+    --popover-foreground: 37 39% 94%;
 
-    --muted: 35 20% 96%;
-    --muted-foreground: 28 12% 45%;
+    --primary: 35 65% 47%;
+    --primary-foreground: 30 15% 5%;
 
-    --accent: 30 65% 40%;
-    --accent-foreground: 0 0% 100%;
+    --secondary: 30 12% 10%;
+    --secondary-foreground: 37 39% 94%;
 
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 0 0% 100%;
+    --muted: 30 12% 10%;
+    --muted-foreground: 33 10% 58%;
 
-    --border: 35 15% 88%;
-    --input: 35 15% 92%;
-    --ring: 30 55% 50%;
+    --accent: 35 65% 47%;
+    --accent-foreground: 30 15% 5%;
+
+    --destructive: 2 42% 52%;
+    --destructive-foreground: 37 39% 94%;
+
+    --border: 39 18% 15%;
+    --input: 39 18% 15%;
+    --ring: 35 65% 47%;
 
     --radius: 0.75rem;
 
-    --warning: 38 92% 48%;
-    --warning-foreground: 28 25% 13%;
+    --warning: 35 65% 47%;
+    --warning-foreground: 30 15% 5%;
 
-    --success: 145 38% 43%;
+    --success: 147 36% 45%;
     --success-foreground: 0 0% 100%;
 
     --info: 210 55% 52%;
     --info-foreground: 0 0% 100%;
 
-    --sidebar-background: 28 30% 16%;
-    --sidebar-foreground: 35 25% 88%;
-    --sidebar-primary: 30 55% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 28 25% 25%;
-    --sidebar-accent-foreground: 35 25% 88%;
-    --sidebar-border: 28 20% 25%;
-    --sidebar-ring: 30 55% 50%;
+    --sidebar-background: 30 12% 10%;
+    --sidebar-foreground: 37 39% 94%;
+    --sidebar-primary: 35 65% 47%;
+    --sidebar-primary-foreground: 30 15% 5%;
+    --sidebar-accent: 39 18% 15%;
+    --sidebar-accent-foreground: 37 39% 94%;
+    --sidebar-border: 39 18% 15%;
+    --sidebar-ring: 35 65% 47%;
 
-    --font-heading: 'Nunito', sans-serif;
+    --font-heading: 'Playfair Display', serif;
+    --font-body: 'Inter', sans-serif;
+  }
+
+  :root[data-theme="light"] {
+    /* CASEGOSTO design tokens — light */
+    --color-bg: #FDF8F2;
+    --color-surface: #FFFFFF;
+    --color-surface-hover: #FEF3E8;
+    --color-surface-secondary: #F7F0E6;
+    --color-border: #E8DDD0;
+    --color-border-strong: #D4C4B0;
+    --color-accent: #B8721A;
+    --color-accent-hover: #9E6016;
+    --color-accent-muted: rgba(184, 114, 26, 0.10);
+    --color-accent-text: #FFFFFF;
+    --color-text-primary: #1A1410;
+    --color-text-secondary: #4A3728;
+    --color-text-muted: #8A7560;
+    --color-text-inverse: #FFFFFF;
+    --color-success: #2D7A4F;
+    --color-success-bg: rgba(45, 122, 79, 0.10);
+    --color-warning: #B8721A;
+    --color-warning-bg: rgba(184, 114, 26, 0.10);
+    --color-danger: #A33D35;
+    --color-danger-bg: rgba(163, 61, 53, 0.10);
+
+    --shadow-card: 0 1px 4px rgba(90, 60, 20, 0.08), 0 4px 16px rgba(90, 60, 20, 0.06);
+    --shadow-hover: 0 4px 12px rgba(90, 60, 20, 0.14), 0 8px 32px rgba(90, 60, 20, 0.10);
+    --shadow-button: 0 2px 8px rgba(184, 114, 26, 0.30);
+
+    /* shadcn mappings */
+    --background: 32 57% 97%;
+    --foreground: 20 17% 8%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 20 17% 8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 17% 8%;
+
+    --primary: 33 73% 41%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 32 44% 94%;
+    --secondary-foreground: 20 17% 8%;
+
+    --muted: 32 44% 94%;
+    --muted-foreground: 30 17% 43%;
+
+    --accent: 33 73% 41%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 4 51% 38%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 33 32% 87%;
+    --input: 33 32% 87%;
+    --ring: 33 73% 41%;
+
+    --radius: 0.75rem;
+
+    --warning: 33 73% 41%;
+    --warning-foreground: 0 0% 100%;
+
+    --success: 147 41% 33%;
+    --success-foreground: 0 0% 100%;
+
+    --info: 210 55% 52%;
+    --info-foreground: 0 0% 100%;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 20 17% 8%;
+    --sidebar-primary: 33 73% 41%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 32 44% 94%;
+    --sidebar-accent-foreground: 20 17% 8%;
+    --sidebar-border: 33 32% 87%;
+    --sidebar-ring: 33 73% 41%;
+
+    --font-heading: 'Playfair Display', serif;
     --font-body: 'Inter', sans-serif;
   }
 }
@@ -64,51 +171,94 @@
     @apply border-border;
   }
 
+  *, *::before, *::after {
+    transition: background-color 250ms ease, border-color 250ms ease, color 150ms ease;
+  }
+
+  html {
+    scrollbar-color: var(--color-border-strong) var(--color-surface-secondary);
+    scrollbar-width: thin;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-surface-secondary);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border-strong);
+    border-radius: 5px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-accent);
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-body);
+    color-scheme: dark;
+  }
+
+  :root[data-theme="light"] body {
+    color-scheme: light;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
   }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--color-accent-muted);
+    color: var(--color-text-primary);
+  }
 }
 
 @layer utilities {
   .gradient-warm {
-    background: linear-gradient(135deg, hsl(30, 55%, 50%), hsl(28, 65%, 40%));
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.85));
   }
 
   .gradient-warm-subtle {
-    background: linear-gradient(135deg, hsl(35, 30%, 96%), hsl(30, 40%, 92%));
+    background: linear-gradient(135deg, var(--color-surface), var(--color-surface-secondary));
   }
 
   .shadow-warm {
-    box-shadow: 0 4px 20px -4px hsl(30 55% 50% / 0.15);
+    box-shadow: var(--shadow-button);
   }
 
   .shadow-warm-lg {
-    box-shadow: 0 10px 40px -8px hsl(30 55% 50% / 0.2);
+    box-shadow: var(--shadow-hover);
   }
 
   .card-glass {
-    background: hsl(0 0% 100% / 0.7);
+    background: var(--color-surface);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid hsl(35 15% 88% / 0.5);
+    border: 1px solid var(--color-border);
   }
 
   .card-hover {
-    @apply transition-all duration-300;
+    @apply transition-all duration-200;
   }
 
   .card-hover:hover {
-    box-shadow: 0 12px 40px -8px hsl(30 55% 50% / 0.12);
+    box-shadow: var(--shadow-hover);
     transform: translateY(-2px);
+    background: var(--color-surface-hover);
   }
 
   .card-modern {
     border: none;
-    box-shadow: 0 1px 3px hsl(28 12% 45% / 0.06), 0 1px 2px hsl(28 12% 45% / 0.04);
+    box-shadow: var(--shadow-card);
   }
 }

@@ -214,8 +214,8 @@ export default function NewOrderDialog() {
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
       <DialogTrigger asChild>
-        <Button className="gradient-warm text-primary-foreground shadow-warm font-heading font-bold">
-          <Plus className="mr-2 h-4 w-4" /> Novo Pedido
+        <Button className="bg-[var(--color-accent)] text-[var(--color-accent-text)] text-[13px] font-bold uppercase tracking-[0.8px] rounded-[10px] px-6 py-3 shadow-warm hover:bg-[var(--color-accent-hover)] hover:-translate-y-[1px] hover:shadow-[0_4px_16px_rgba(200,133,42,0.3)] transition-all duration-200">
+          <Plus className="h-4 w-4 mr-2" /> Novo Pedido
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">

@@ -96,7 +96,7 @@ export default function Historico() {
         <Card>
           <CardContent className="pt-4 pb-4 text-center">
             <p className="text-xs text-muted-foreground font-medium">Entregues</p>
-            <p className="text-2xl font-extrabold font-heading text-green-600">{entregues}</p>
+            <p className="text-2xl font-extrabold font-heading text-[var(--color-success)]">{entregues}</p>
           </CardContent>
         </Card>
         <Card>

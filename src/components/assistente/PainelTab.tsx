@@ -61,7 +61,7 @@ export default function PainelTab({
               {sorted.map((b: Bill, i: number) => {
                 const p = prioridadeDe(b);
                 const dot = p === "high" ? "bg-destructive" : p === "medium" ? "bg-warning" : "bg-success";
-                const badge = p === "high" ? "bg-destructive/10 text-destructive" : p === "medium" ? "bg-warning/10 text-warning-foreground" : "bg-success/10 text-success";
+                const badge = p === "high" ? "bg-destructive/10 text-destructive" : p === "medium" ? "bg-warning/10 text-warning" : "bg-success/10 text-success";
                 const badgeText = b.status === "atrasada" ? (b.meses_atrasada > 0 ? `${b.meses_atrasada}x atrasada` : "Atrasada") : b.status === "vence-hoje" ? "Vence hoje" : "Próxima";
                 return (
                   <div key={b.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
