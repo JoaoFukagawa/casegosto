@@ -73,7 +73,7 @@ export default function Historico() {
                 <SelectItem value="haver">📋 Haver</SelectItem>
               </SelectContent>
             </Select>
-            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            <CalendarDays className="h-4 w-4 text-[var(--color-text-secondary)]" />
             <Input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-[180px]" />
           </div>
         }
@@ -83,26 +83,26 @@ export default function Historico() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card>
           <CardContent className="pt-4 pb-4 text-center">
-            <p className="text-xs text-muted-foreground font-medium">Total Pedidos</p>
-            <p className="text-2xl font-extrabold font-heading text-foreground">{totalPedidos}</p>
+            <p className="text-xs text-[var(--color-text-secondary)] font-medium">Total Pedidos</p>
+            <p className="text-2xl font-extrabold font-heading text-[var(--color-text-primary)]">{totalPedidos}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 pb-4 text-center">
-            <p className="text-xs text-muted-foreground font-medium">Faturamento</p>
-            <p className="text-2xl font-extrabold font-heading text-primary">R$ {totalVendas.toFixed(2)}</p>
+            <p className="text-xs text-[var(--color-text-secondary)] font-medium">Faturamento</p>
+            <p className="text-2xl font-extrabold font-heading text-[var(--color-accent)]">R$ {totalVendas.toFixed(2)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 pb-4 text-center">
-            <p className="text-xs text-muted-foreground font-medium">Entregues</p>
+            <p className="text-xs text-[var(--color-text-secondary)] font-medium">Entregues</p>
             <p className="text-2xl font-extrabold font-heading text-[var(--color-success)]">{entregues}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 pb-4 text-center">
-            <p className="text-xs text-muted-foreground font-medium">Cancelados</p>
-            <p className="text-2xl font-extrabold font-heading text-destructive">{cancelados}</p>
+            <p className="text-xs text-[var(--color-text-secondary)] font-medium">Cancelados</p>
+            <p className="text-2xl font-extrabold font-heading text-[var(--color-danger)]">{cancelados}</p>
           </CardContent>
         </Card>
       </div>
@@ -113,12 +113,12 @@ export default function Historico() {
           {Object.entries(paymentTotals).map(([method, total]) => (
             <Card
               key={method}
-              className={`cursor-pointer transition-colors ${paymentFilter === method ? "border-primary bg-primary/5" : ""}`}
+              className={`cursor-pointer transition-colors ${paymentFilter === method ? "border-primary bg-[var(--color-accent-muted)]" : ""}`}
               onClick={() => setPaymentFilter(paymentFilter === method ? "todos" : method)}
             >
               <CardContent className="pt-3 pb-3 text-center">
-                <p className="text-xs text-muted-foreground font-medium">{paymentLabels[method] || method}</p>
-                <p className="text-lg font-extrabold font-heading text-primary">R$ {total.toFixed(2)}</p>
+                <p className="text-xs text-[var(--color-text-secondary)] font-medium">{paymentLabels[method] || method}</p>
+                <p className="text-lg font-extrabold font-heading text-[var(--color-accent)]">R$ {total.toFixed(2)}</p>
               </CardContent>
             </Card>
           ))}
@@ -131,7 +131,7 @@ export default function Historico() {
           <CardTitle className="font-heading text-lg">
             Pedidos de {format(parseISO(selectedDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
             {paymentFilter !== "todos" && (
-              <span className="text-sm font-normal text-muted-foreground ml-2">
+              <span className="text-sm font-normal text-[var(--color-text-secondary)] ml-2">
                 · {paymentLabels[paymentFilter] || paymentFilter} · Total: R$ {filteredOrders.filter((o) => o.status !== "cancelado").reduce((s, o) => s + o.total, 0).toFixed(2)}
               </span>
             )}
@@ -164,13 +164,13 @@ export default function Historico() {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium text-foreground">{order.customer_name}</p>
+                          <p className="font-medium text-[var(--color-text-primary)]">{order.customer_name}</p>
                           {order.customer_phone && (
-                            <p className="text-xs text-muted-foreground">{order.customer_phone}</p>
+                            <p className="text-xs text-[var(--color-text-secondary)]">{order.customer_phone}</p>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="text-sm text-[var(--color-text-secondary)]">
                         {order.order_items?.map((item: any) =>
                           item.weight
                             ? `${item.weight}kg ${item.menu_items?.name || "Item"}`
@@ -186,7 +186,7 @@ export default function Historico() {
                       <TableCell>
                         <StatusBadge status={order.status} />
                       </TableCell>
-                      <TableCell className="text-right font-bold text-primary">
+                      <TableCell className="text-right font-bold text-[var(--color-accent)]">
                         R$ {order.total.toFixed(2)}
                       </TableCell>
                     </TableRow>

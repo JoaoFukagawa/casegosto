@@ -43,7 +43,7 @@ export default function PainelTab({
       </div>
 
       {criticas >= 3 && (
-        <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+        <div className="flex items-start gap-3 rounded-lg border border-[var(--color-danger)] bg-[var(--color-danger-bg)] p-4 text-sm text-[var(--color-danger)]">
           <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
           <div><strong>Atenção:</strong> Você tem {criticas} contas atrasadas. Priorize luz e água — o corte pode acontecer a qualquer momento e atrapalha a produção das marmitas.</div>
         </div>
@@ -55,25 +55,25 @@ export default function PainelTab({
         </CardHeader>
         <CardContent>
           {sorted.length === 0 ? (
-            <p className="text-center text-muted-foreground py-6">Nenhuma conta cadastrada. Adicione na aba "Lançar conta".</p>
+            <p className="text-center text-[var(--color-text-secondary)] py-6">Nenhuma conta cadastrada. Adicione na aba "Lançar conta".</p>
           ) : (
             <div className="space-y-2">
               {sorted.map((b: Bill, i: number) => {
                 const p = prioridadeDe(b);
                 const dot = p === "high" ? "bg-destructive" : p === "medium" ? "bg-warning" : "bg-success";
-                const badge = p === "high" ? "bg-destructive/10 text-destructive" : p === "medium" ? "bg-warning/10 text-warning" : "bg-success/10 text-success";
+                const badge = p === "high" ? "bg-[var(--color-danger-bg)] text-[var(--color-danger)]" : p === "medium" ? "bg-[var(--color-warning-bg)] text-[var(--color-warning)]" : "bg-[var(--color-success-bg)] text-[var(--color-success)]";
                 const badgeText = b.status === "atrasada" ? (b.meses_atrasada > 0 ? `${b.meses_atrasada}x atrasada` : "Atrasada") : b.status === "vence-hoje" ? "Vence hoje" : "Próxima";
                 return (
-                  <div key={b.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
-                    <span className="text-xs font-medium text-muted-foreground w-5">{i + 1}</span>
+                  <div key={b.id} className="flex items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+                    <span className="text-xs font-medium text-[var(--color-text-secondary)] w-5">{i + 1}</span>
                     <span className={`h-2 w-2 rounded-full ${dot} flex-shrink-0`} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{b.nome}</p>
-                      <p className="text-xs text-muted-foreground">{b.categoria}</p>
+                      <p className="text-sm font-medium text-[var(--color-text-primary)] truncate">{b.nome}</p>
+                      <p className="text-xs text-[var(--color-text-secondary)]">{b.categoria}</p>
                     </div>
                     <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${badge}`}>{badgeText}</span>
-                    <span className="text-sm font-bold font-heading text-foreground">R$ {Number(b.valor).toFixed(2)}</span>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteBill.mutate(b.id)}>
+                    <span className="text-sm font-bold font-heading text-[var(--color-text-primary)]">R$ {Number(b.valor).toFixed(2)}</span>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-[var(--color-text-secondary)] hover:text-[var(--color-danger)]" onClick={() => deleteBill.mutate(b.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -88,14 +88,14 @@ export default function PainelTab({
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="font-heading text-lg">Progresso mensal</CardTitle>
           <div className="flex items-center gap-2">
-            <Label htmlFor="meta" className="text-xs text-muted-foreground">Meta R$</Label>
+            <Label htmlFor="meta" className="text-xs text-[var(--color-text-secondary)]">Meta R$</Label>
             <Input id="meta" type="number" className="w-28 h-8" value={meta} onChange={(e) => setMeta(Number(e.target.value) || 0)} />
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-2">R$ {receitaMes.toFixed(2)} arrecadados de R$ {meta.toFixed(2)} necessários</p>
+          <p className="text-sm text-[var(--color-text-secondary)] mb-2">R$ {receitaMes.toFixed(2)} arrecadados de R$ {meta.toFixed(2)} necessários</p>
           <Progress value={progressoPct} className="h-2" />
-          <p className="text-xs text-muted-foreground mt-2">{progressoPct}% — faltam R$ {Math.max(0, meta - receitaMes).toFixed(2)} para a meta</p>
+          <p className="text-xs text-[var(--color-text-secondary)] mt-2">{progressoPct}% — faltam R$ {Math.max(0, meta - receitaMes).toFixed(2)} para a meta</p>
         </CardContent>
       </Card>
     </div>

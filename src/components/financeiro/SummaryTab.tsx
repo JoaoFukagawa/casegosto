@@ -90,21 +90,21 @@ export default function SummaryTab({ selectedDate }: { selectedDate: string }) {
           {deliveredToday.length ? (
             <div className="space-y-2">
               {deliveredToday.map((order) => (
-                <div key={order.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                <div key={order.id} className="flex items-center justify-between rounded-lg border border-[var(--color-border)] p-3">
                   <div>
-                    <p className="font-medium text-foreground">{order.customer_name}</p>
-                    <p className="text-xs text-muted-foreground">{order.delivery_address}</p>
+                    <p className="font-medium text-[var(--color-text-primary)]">{order.customer_name}</p>
+                    <p className="text-xs text-[var(--color-text-secondary)]">{order.delivery_address}</p>
                   </div>
-                  <span className="font-bold text-primary">R$ {order.total.toFixed(2)}</span>
+                  <span className="font-bold text-[var(--color-accent)]">R$ {order.total.toFixed(2)}</span>
                 </div>
               ))}
-              <div className="mt-3 rounded-lg bg-primary/5 border border-primary/20 p-4 flex items-center justify-between">
-                <span className="font-heading font-bold text-foreground">Total de entregas: {deliveredToday.length}</span>
-                <span className="font-heading font-extrabold text-primary text-lg">R$ {deliveredToday.reduce((s, o) => s + o.total, 0).toFixed(2)}</span>
+              <div className="mt-3 rounded-lg bg-[var(--color-accent-muted)] border border-[var(--color-accent)] p-4 flex items-center justify-between">
+                <span className="font-heading font-bold text-[var(--color-text-primary)]">Total de entregas: {deliveredToday.length}</span>
+                <span className="font-heading font-extrabold text-[var(--color-accent)] text-lg">R$ {deliveredToday.reduce((s, o) => s + o.total, 0).toFixed(2)}</span>
               </div>
             </div>
           ) : (
-            <p className="text-center text-muted-foreground py-4">Nenhuma entrega neste dia 🛵</p>
+            <p className="text-center text-[var(--color-text-secondary)] py-4">Nenhuma entrega neste dia 🛵</p>
           )}
         </CardContent>
       </Card>
@@ -120,9 +120,9 @@ export default function SummaryTab({ selectedDate }: { selectedDate: string }) {
                 const val = costsByCategory[cat.value] ?? 0;
                 if (val === 0) return null;
                 return (
-                  <div key={cat.value} className="rounded-lg border border-border p-3 text-center">
-                    <p className="text-sm text-muted-foreground">{cat.label}</p>
-                    <p className="text-lg font-bold font-heading text-foreground">R$ {val.toFixed(2)}</p>
+                  <div key={cat.value} className="rounded-lg border border-[var(--color-border)] p-3 text-center">
+                    <p className="text-sm text-[var(--color-text-secondary)]">{cat.label}</p>
+                    <p className="text-lg font-bold font-heading text-[var(--color-text-primary)]">R$ {val.toFixed(2)}</p>
                   </div>
                 );
               })}
@@ -172,7 +172,7 @@ export default function SummaryTab({ selectedDate }: { selectedDate: string }) {
         </CardHeader>
         <CardContent>
           {!monthExpenses?.length ? (
-            <p className="text-center text-muted-foreground py-6">Nenhuma despesa registrada neste mês 💰</p>
+            <p className="text-center text-[var(--color-text-secondary)] py-6">Nenhuma despesa registrada neste mês 💰</p>
           ) : (
             <div className="overflow-auto">
               <Table>
@@ -191,9 +191,9 @@ export default function SummaryTab({ selectedDate }: { selectedDate: string }) {
                       <TableCell className="text-sm">{format(parseISO(exp.expense_date), "dd/MM")}</TableCell>
                       <TableCell className="font-medium">{exp.description}</TableCell>
                       <TableCell className="text-sm capitalize">{EXPENSE_CATEGORIES.find((c) => c.value === exp.category)?.label ?? exp.category}</TableCell>
-                      <TableCell className="text-right font-bold text-destructive">R$ {exp.amount.toFixed(2)}</TableCell>
+                      <TableCell className="text-right font-bold text-[var(--color-danger)]">R$ {exp.amount.toFixed(2)}</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" onClick={() => deleteExpense.mutate(exp.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                        <Button variant="ghost" size="icon" onClick={() => deleteExpense.mutate(exp.id)} className="h-8 w-8 text-[var(--color-text-secondary)] hover:text-[var(--color-danger)]">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </TableCell>

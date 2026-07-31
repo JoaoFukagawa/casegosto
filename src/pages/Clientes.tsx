@@ -73,7 +73,7 @@ export default function Clientes() {
         actions={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button onClick={openNew} className="gradient-warm text-primary-foreground shadow-warm font-heading font-bold">
+              <Button onClick={openNew} className="gradient-warm text-[var(--color-accent-text)] shadow-warm font-heading font-bold">
                 <Plus className="mr-2 h-4 w-4" /> Novo Cliente
               </Button>
             </DialogTrigger>
@@ -114,7 +114,7 @@ export default function Clientes() {
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                  <Button onClick={() => save.mutate(form, { onSuccess: () => { setOpen(false); setForm(emptyForm); } })} disabled={save.isPending} className="gradient-warm text-primary-foreground font-heading font-bold">
+                  <Button onClick={() => save.mutate(form, { onSuccess: () => { setOpen(false); setForm(emptyForm); } })} disabled={save.isPending} className="gradient-warm text-[var(--color-accent-text)] font-heading font-bold">
                     {save.isPending ? "Salvando..." : "Salvar"}
                   </Button>
                 </div>
@@ -139,11 +139,11 @@ export default function Clientes() {
                   <CardTitle className="font-heading text-base">{c.nome}</CardTitle>
                   <div className="flex gap-1">
                     <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => remove.mutate(c.id)}><Trash2 className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)]" onClick={() => remove.mutate(c.id)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-1 text-sm text-muted-foreground">
+              <CardContent className="space-y-1 text-sm text-[var(--color-text-secondary)]">
                 {c.telefone && <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5" /> {c.telefone}</p>}
                 {(c.rua || c.bairro) && (
                   <p className="flex items-start gap-2">

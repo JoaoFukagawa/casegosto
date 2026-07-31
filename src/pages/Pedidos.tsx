@@ -57,12 +57,12 @@ export default function Pedidos() {
             <CardTitle className="font-heading text-lg flex items-center gap-2">
               {order.customer_name}
               {order.delivery_time && (
-                <span className="text-sm font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                <span className="text-sm font-bold text-[var(--color-accent)] bg-[var(--color-accent-muted)] px-2 py-0.5 rounded-md">
                   ⏰ {order.delivery_time.slice(0, 5)}
                 </span>
               )}
             </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-[var(--color-text-secondary)] mt-1">
               {format(new Date(order.created_at), "dd/MM/yyyy · HH:mm")}
               {order.customer_phone && ` · ${order.customer_phone}`}
             </p>
@@ -114,7 +114,7 @@ export default function Pedidos() {
             <Button
               variant="ghost"
               size="icon"
-              className="text-destructive hover:bg-destructive/10"
+              className="text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)]"
               onClick={() => deleteOrder.mutate(order.id)}
             >
               <Trash2 className="h-4 w-4" />
@@ -126,16 +126,16 @@ export default function Pedidos() {
         <div className="space-y-1.5">
           {order.order_items?.map((item: any) => (
             <div key={item.id} className="flex items-center justify-between text-sm">
-              <span className="text-foreground">
+              <span className="text-[var(--color-text-primary)]">
                 {item.weight
                   ? `${item.weight}kg ${item.menu_items?.name || "Item"}`
                   : `${item.quantity}x ${item.menu_items?.name || "Item"}`}
               </span>
-              <span className="text-muted-foreground">R$ {(item.weight ? item.unit_price * item.weight : item.unit_price * item.quantity).toFixed(2)}</span>
+              <span className="text-[var(--color-text-secondary)]">R$ {(item.weight ? item.unit_price * item.weight : item.unit_price * item.quantity).toFixed(2)}</span>
             </div>
           ))}
         </div>
-        <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground border-t border-border pt-2">
+        <div className="mt-3 flex flex-wrap gap-3 text-xs text-[var(--color-text-secondary)] border-t border-[var(--color-border)] pt-2">
           <span className="flex items-center gap-1">
             {order.delivery_type === "entrega" ? <Truck className="h-3.5 w-3.5" /> : <Store className="h-3.5 w-3.5" />}
             {order.delivery_type === "entrega" ? "Entrega" : "Retirada"}
@@ -145,7 +145,7 @@ export default function Pedidos() {
               {order.order_payments.map((p: any, idx: number) => (
                 <span key={p.id || idx}>
                   {p.method_value === "dinheiro" ? "💵" : p.method_value === "pix" ? "📱" : p.method_value === "haver" ? "📋" : "💳"}{" "}
-                  {p.method_label} <span className="font-medium text-foreground">R$ {Number(p.amount).toFixed(2)}</span>
+                  {p.method_label} <span className="font-medium text-[var(--color-text-primary)]">R$ {Number(p.amount).toFixed(2)}</span>
                   {idx < order.order_payments.length - 1 ? " · " : ""}
                 </span>
               ))}
@@ -158,21 +158,21 @@ export default function Pedidos() {
           )}
         </div>
         {order.delivery_type === "entrega" && order.delivery_address && (
-          <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
+          <p className="mt-1 text-xs text-[var(--color-text-secondary)] flex items-center gap-1">
             <MapPin className="h-3.5 w-3.5" /> {order.delivery_address}
             {order.delivery_fee > 0 && (
-              <span className="ml-2 font-medium text-foreground">· Taxa: R$ {Number(order.delivery_fee).toFixed(2)}</span>
+              <span className="ml-2 font-medium text-[var(--color-text-primary)]">· Taxa: R$ {Number(order.delivery_fee).toFixed(2)}</span>
             )}
           </p>
         )}
         {order.notes && (
-          <p className="mt-1 text-xs text-muted-foreground italic">
+          <p className="mt-1 text-xs text-[var(--color-text-secondary)] italic">
             📝 {order.notes}
           </p>
         )}
-        <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+        <div className="mt-3 flex items-center justify-between border-t border-[var(--color-border)] pt-3">
           <StatusBadge status={order.status} />
-          <span className="text-lg font-extrabold font-heading text-primary">
+          <span className="text-lg font-extrabold font-heading text-[var(--color-accent)]">
             R$ {order.total.toFixed(2)}
           </span>
         </div>
@@ -188,7 +188,7 @@ export default function Pedidos() {
     <div className="space-y-6">
       <PageHeader
         title="Pedidos"
-        subtitle={<><span className="font-bold text-warning">{pendingCount}</span> pedido(s) pendente(s) ainda hoje</>}
+        subtitle={<><span className="font-bold text-[var(--color-warning)]">{pendingCount}</span> pedido(s) pendente(s) ainda hoje</>}
         actions={<NewOrderDialog />}
       />
 
@@ -200,7 +200,7 @@ export default function Pedidos() {
           placeholder="Pesquisar por nome do cliente..."
         />
         <div className="flex items-center gap-2">
-          <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          <CalendarDays className="h-4 w-4 text-[var(--color-text-secondary)]" />
           <Input
             type="date"
             value={selectedDate}
@@ -244,8 +244,8 @@ export default function Pedidos() {
       ) : (
         <div className="space-y-4">
           {showingHaver && (
-            <p className="text-sm text-muted-foreground">
-              Mostrando <span className="font-bold text-foreground">{displayOrders.length}</span> pedido(s) com pagamento haver · Total: <span className="font-bold text-primary">R$ {displayOrders.reduce((s, o) => s + o.total, 0).toFixed(2)}</span>
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              Mostrando <span className="font-bold text-[var(--color-text-primary)]">{displayOrders.length}</span> pedido(s) com pagamento haver · Total: <span className="font-bold text-[var(--color-accent)]">R$ {displayOrders.reduce((s, o) => s + o.total, 0).toFixed(2)}</span>
             </p>
           )}
           {displayOrders.map(renderOrder)}

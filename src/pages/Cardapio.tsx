@@ -54,7 +54,7 @@ export default function Cardapio() {
       ) : (
         Object.entries(grouped!).map(([category, categoryItems]) => (
           <div key={category}>
-            <h3 className="text-sm font-bold font-heading uppercase tracking-wider text-muted-foreground mb-3">
+            <h3 className="text-sm font-bold font-heading uppercase tracking-wider text-[var(--color-text-secondary)] mb-3">
               {category}
             </h3>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -71,7 +71,7 @@ export default function Cardapio() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-bold font-heading text-foreground">{item.name}</p>
+                            <p className="font-bold font-heading text-[var(--color-text-primary)]">{item.name}</p>
                             {item.unit_type === "kg" && (
                               <Badge variant="outline" className="text-xs">por kg</Badge>
                             )}
@@ -80,9 +80,9 @@ export default function Cardapio() {
                             )}
                           </div>
                           {item.description && (
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
+                            <p className="text-xs text-[var(--color-text-secondary)] mt-1 line-clamp-2">{item.description}</p>
                           )}
-                          <p className="text-lg font-extrabold font-heading text-primary mt-2">
+                          <p className="text-lg font-extrabold font-heading text-[var(--color-accent)] mt-2">
                             R$ {item.price.toFixed(2)}{item.unit_type === "kg" ? "/kg" : ""}
                           </p>
                         </div>
@@ -95,7 +95,7 @@ export default function Cardapio() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            className="h-8 w-8 text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)]"
                             onClick={() => deleteItem.mutate(item.id)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -104,18 +104,18 @@ export default function Cardapio() {
                       </div>
 
                       {/* Stock & Sales info */}
-                      <div className="mt-3 pt-3 border-t border-border flex items-center gap-4 flex-wrap">
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <div className="mt-3 pt-3 border-t border-[var(--color-border)] flex items-center gap-4 flex-wrap">
+                        <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)]">
                           <TrendingUp className="h-3.5 w-3.5" />
                           <span>
                             Vendidos hoje:{" "}
-                            <span className="font-bold text-foreground">
+                            <span className="font-bold text-[var(--color-text-primary)]">
                               {item.unit_type === "kg" ? `${weightSold.toFixed(1)}kg` : qtySold}
                             </span>
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)]">
                           <Package className="h-3.5 w-3.5" />
                           <span>Estoque:</span>
                           <Input
@@ -133,13 +133,13 @@ export default function Cardapio() {
                             }}
                           />
                           {stockRemaining != null && (
-                            <span className={`font-bold ${isOutOfStock ? "text-destructive" : "text-foreground"}`}>
+                            <span className={`font-bold ${isOutOfStock ? "text-[var(--color-danger)]" : "text-[var(--color-text-primary)]"}`}>
                               (resta {Math.max(0, stockRemaining)})
                             </span>
                           )}
                         </div>
                         {item.unit_type === "kg" && (
-                          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                          <label className="flex items-center gap-1.5 text-xs text-[var(--color-text-secondary)] cursor-pointer">
                             <input
                               type="checkbox"
                               checked={item.stock_by_unit}

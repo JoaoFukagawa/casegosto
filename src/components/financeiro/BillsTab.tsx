@@ -81,9 +81,9 @@ export default function BillsTab({ selectedDate }: { selectedDate: string }) {
             {billDateFilter ? `Contas — vencimento ${format(parseISO(billDateFilter), "dd/MM/yyyy")}` : "Todas as contas"}
           </CardTitle>
           <div className="flex items-center gap-2 flex-wrap">
-            <Label className="text-xs text-muted-foreground">Vencimento</Label>
+            <Label className="text-xs text-[var(--color-text-secondary)]">Vencimento</Label>
             <Input type="date" value={billDateFilter} onChange={(e) => setBillDateFilter(e.target.value)} className="h-8 w-[150px]" />
-            <Label className="text-xs text-muted-foreground">Status</Label>
+            <Label className="text-xs text-[var(--color-text-secondary)]">Status</Label>
             <Select value={billStatusFilter} onValueChange={setBillStatusFilter}>
               <SelectTrigger className="h-8 w-[160px]"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -103,7 +103,7 @@ export default function BillsTab({ selectedDate }: { selectedDate: string }) {
         </CardHeader>
         <CardContent>
           {!filteredBills.length ? (
-            <p className="text-center text-muted-foreground py-6">Nenhuma conta para este filtro 📭</p>
+            <p className="text-center text-[var(--color-text-secondary)] py-6">Nenhuma conta para este filtro 📭</p>
           ) : (
             <div className="overflow-auto">
               <Table>
@@ -122,14 +122,14 @@ export default function BillsTab({ selectedDate }: { selectedDate: string }) {
                     const st = billRealStatus(b);
                     const stLabel = st === "paga" ? `✓ Paga${b.paid_at ? ` em ${format(parseISO(b.paid_at), "dd/MM/yyyy")}` : ""}` :
                       st === "atrasada" ? "Atrasada" : st === "vence-hoje" ? "Vence hoje" : "Pendente";
-                    const stClass = st === "paga" ? "bg-success/15 text-success border-success/30" :
-                      st === "atrasada" ? "bg-destructive/15 text-destructive border-destructive/30" :
-                      st === "vence-hoje" ? "bg-warning/15 text-warning border-warning/30" :
-                      "bg-muted text-foreground border-border";
+                    const stClass = st === "paga" ? "bg-[var(--color-success-bg)] text-[var(--color-success)] border-[var(--color-success)]" :
+                      st === "atrasada" ? "bg-[var(--color-danger-bg)] text-[var(--color-danger)] border-[var(--color-danger)]" :
+                      st === "vence-hoje" ? "bg-[var(--color-warning-bg)] text-[var(--color-warning)] border-[var(--color-warning)]" :
+                      "bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] border-[var(--color-border)]";
                     return (
                       <TableRow key={b.id}>
                         <TableCell className="font-medium">{b.nome}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{b.categoria}</TableCell>
+                        <TableCell className="text-sm text-[var(--color-text-secondary)]">{b.categoria}</TableCell>
                         <TableCell className="text-sm">{b.due_date ? format(parseISO(b.due_date), "dd/MM/yyyy") : "—"}</TableCell>
                         <TableCell><Badge variant="outline" className={`font-medium ${stClass}`}>{stLabel}</Badge></TableCell>
                         <TableCell className="text-right font-bold">R$ {Number(b.valor).toFixed(2)}</TableCell>

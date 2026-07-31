@@ -72,11 +72,11 @@ export default function Estoque() {
     let statusBadge = null;
     if (hasStock && remaining !== null) {
       if (remaining <= 0) {
-        statusBadge = <Badge variant="outline" className="bg-destructive/15 text-destructive border-destructive/30">Esgotado</Badge>;
+        statusBadge = <Badge variant="outline" className="bg-[var(--color-danger-bg)] text-[var(--color-danger)] border-[var(--color-danger)]">Esgotado</Badge>;
       } else if (remaining <= 5) {
-        statusBadge = <Badge variant="outline" className="bg-warning/15 text-warning border-warning/30">Baixo</Badge>;
+        statusBadge = <Badge variant="outline" className="bg-[var(--color-warning-bg)] text-[var(--color-warning)] border-[var(--color-warning)]">Baixo</Badge>;
       } else {
-        statusBadge = <Badge variant="outline" className="bg-success/15 text-success border-success/30">OK</Badge>;
+        statusBadge = <Badge variant="outline" className="bg-[var(--color-success-bg)] text-[var(--color-success)] border-[var(--color-success)]">OK</Badge>;
       }
     }
 
@@ -84,26 +84,26 @@ export default function Estoque() {
       <TableRow key={item.id}>
         <TableCell className="font-medium">{item.name}</TableCell>
         <TableCell className="text-center">
-          {hasStock ? fmt(Number(item.stock)) : <span className="text-muted-foreground">—</span>}
+          {hasStock ? fmt(Number(item.stock)) : <span className="text-[var(--color-text-secondary)]">—</span>}
         </TableCell>
-        <TableCell className="text-center text-muted-foreground">{fmt(agg.ordered)}</TableCell>
+        <TableCell className="text-center text-[var(--color-text-secondary)]">{fmt(agg.ordered)}</TableCell>
         <TableCell className="text-center">
-          <span className="text-success font-medium">{fmt(agg.delivered)}</span>
+          <span className="text-[var(--color-success)] font-medium">{fmt(agg.delivered)}</span>
         </TableCell>
         <TableCell className="text-center">
           {agg.pending > 0 ? (
-            <span className="text-warning font-bold">{fmt(agg.pending)}</span>
+            <span className="text-[var(--color-warning)] font-bold">{fmt(agg.pending)}</span>
           ) : (
-            <span className="text-muted-foreground">0</span>
+            <span className="text-[var(--color-text-secondary)]">0</span>
           )}
         </TableCell>
         <TableCell className="text-center">
           {hasStock && remaining !== null ? (
-            <span className={`font-bold font-heading ${remaining <= 0 ? "text-destructive" : remaining <= 5 ? "text-warning" : "text-foreground"}`}>
+            <span className={`font-bold font-heading ${remaining <= 0 ? "text-[var(--color-danger)]" : remaining <= 5 ? "text-[var(--color-warning)]" : "text-[var(--color-text-primary)]"}`}>
               {fmt(remaining)}
             </span>
           ) : (
-            <span className="text-muted-foreground">—</span>
+            <span className="text-[var(--color-text-secondary)]">—</span>
           )}
         </TableCell>
         <TableCell className="text-center">{statusBadge}</TableCell>
@@ -121,44 +121,44 @@ export default function Estoque() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="flex items-center gap-3 p-4">
-            <div className="rounded-xl p-3 bg-muted text-muted-foreground">
+            <div className="rounded-xl p-3 bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]">
               <Package className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Total pedido hoje</p>
+              <p className="text-xs text-[var(--color-text-secondary)]">Total pedido hoje</p>
               <p className="text-xl font-bold font-heading">{totalOrdered.toFixed(totalOrdered % 1 ? 2 : 0)}</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-success/5 border-success/20">
+        <Card className="bg-[var(--color-success-bg)] border-[var(--color-success)]">
           <CardContent className="flex items-center gap-3 p-4">
-            <div className="rounded-xl p-3 bg-success/10 text-success">
+            <div className="rounded-xl p-3 bg-[var(--color-success-bg)] text-[var(--color-success)]">
               <CheckCircle2 className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Já entregue</p>
+              <p className="text-xs text-[var(--color-text-secondary)]">Já entregue</p>
               <p className="text-xl font-bold font-heading">{totalDelivered.toFixed(totalDelivered % 1 ? 2 : 0)}</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-warning/5 border-warning/20">
+        <Card className="bg-[var(--color-warning-bg)] border-[var(--color-warning)]">
           <CardContent className="flex items-center gap-3 p-4">
-            <div className="rounded-xl p-3 bg-warning/10 text-warning">
+            <div className="rounded-xl p-3 bg-[var(--color-warning-bg)] text-[var(--color-warning)]">
               <Package className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Pendente entrega</p>
+              <p className="text-xs text-[var(--color-text-secondary)]">Pendente entrega</p>
               <p className="text-xl font-bold font-heading">{totalPending.toFixed(totalPending % 1 ? 2 : 0)}</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-destructive/5 border-destructive/20">
+        <Card className="bg-[var(--color-danger-bg)] border-[var(--color-danger)]">
           <CardContent className="flex items-center gap-3 p-4">
-            <div className="rounded-xl p-3 bg-destructive/10 text-destructive">
+            <div className="rounded-xl p-3 bg-[var(--color-danger-bg)] text-[var(--color-danger)]">
               <AlertTriangle className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Itens com estoque baixo</p>
+              <p className="text-xs text-[var(--color-text-secondary)]">Itens com estoque baixo</p>
               <p className="text-xl font-bold font-heading">{lowStockCount}</p>
             </div>
           </CardContent>

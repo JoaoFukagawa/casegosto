@@ -38,14 +38,14 @@ export default function PratoDoDia() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={<span className="flex items-center gap-2"><UtensilsCrossed className="h-6 w-6 text-primary" /> Prato do Dia</span>}
+        title={<span className="flex items-center gap-2"><UtensilsCrossed className="h-6 w-6 text-[var(--color-accent)]" /> Prato do Dia</span>}
         subtitle={`Histórico e ranking dos pratos vendidos em ${format(today, "MMMM", { locale: ptBR })}`}
       />
 
       <Card>
         <CardHeader>
           <CardTitle className="font-heading text-lg flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-primary" />
+            <Trophy className="h-5 w-5 text-[var(--color-accent)]" />
             Ranking do mês
           </CardTitle>
         </CardHeader>
@@ -53,19 +53,19 @@ export default function PratoDoDia() {
           {ranking.length ? (
             <div className="space-y-2">
               {ranking.map((p, idx) => (
-                <div key={p.nome} className="flex items-center justify-between rounded-lg border border-border p-3 hover:bg-muted/40">
+                <div key={p.nome} className="flex items-center justify-between rounded-lg border border-[var(--color-border)] p-3 hover:bg-[var(--color-surface-hover)]">
                   <div className="flex items-center gap-3">
-                    <span className={`flex h-8 w-8 items-center justify-center rounded-full font-heading font-bold text-sm ${idx === 0 ? "bg-primary text-primary-foreground" : idx < 3 ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
+                    <span className={`flex h-8 w-8 items-center justify-center rounded-full font-heading font-bold text-sm ${idx === 0 ? "bg-[var(--color-accent)] text-[var(--color-accent-text)]" : idx < 3 ? "bg-[var(--color-accent-muted)] text-[var(--color-accent)]" : "bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]"}`}>
                       {idx + 1}
                     </span>
                     <div>
-                      <p className="font-semibold text-foreground">{p.nome}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Apareceu em <span className="font-medium text-foreground">{p.dias}</span> dia{p.dias !== 1 ? "s" : ""}
+                      <p className="font-semibold text-[var(--color-text-primary)]">{p.nome}</p>
+                      <p className="text-xs text-[var(--color-text-secondary)]">
+                        Apareceu em <span className="font-medium text-[var(--color-text-primary)]">{p.dias}</span> dia{p.dias !== 1 ? "s" : ""}
                       </p>
                     </div>
                   </div>
-                  <span className="font-bold font-heading text-primary">{p.qtd} marmita{p.qtd !== 1 ? "s" : ""}</span>
+                  <span className="font-bold font-heading text-[var(--color-accent)]">{p.qtd} marmita{p.qtd !== 1 ? "s" : ""}</span>
                 </div>
               ))}
             </div>
@@ -83,14 +83,14 @@ export default function PratoDoDia() {
           {porDia.length ? (
             <div className="space-y-3">
               {porDia.map(([dia, items]) => (
-                <div key={dia} className="rounded-lg border border-border p-3">
-                  <p className="text-sm font-semibold text-foreground mb-2">
+                <div key={dia} className="rounded-lg border border-[var(--color-border)] p-3">
+                  <p className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
                     {format(new Date(dia + "T00:00"), "EEEE, d 'de' MMMM", { locale: ptBR })}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {items.map((i, idx) => (
-                      <span key={idx} className="text-xs bg-muted px-2 py-1 rounded-full">
-                        {i.nome} · <span className="font-semibold text-primary">{i.qtd}</span>
+                      <span key={idx} className="text-xs bg-[var(--color-surface-secondary)] px-2 py-1 rounded-full">
+                        {i.nome} · <span className="font-semibold text-[var(--color-accent)]">{i.qtd}</span>
                       </span>
                     ))}
                   </div>

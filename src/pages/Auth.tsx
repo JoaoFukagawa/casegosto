@@ -43,7 +43,7 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-3">
@@ -52,7 +52,7 @@ export default function Auth() {
             </div>
           </div>
           <CardTitle className="font-heading text-2xl tracking-[1.5px]">CASEGOSTO</CardTitle>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-[var(--color-text-secondary)] text-sm">
             {isLogin ? "Entre na sua conta" : "Crie sua conta"}
           </p>
         </CardHeader>
@@ -95,7 +95,7 @@ export default function Auth() {
             </div>
             <Button
               type="submit"
-              className="w-full gradient-warm text-primary-foreground shadow-warm font-heading font-bold"
+              className="w-full gradient-warm text-[var(--color-accent-text)] shadow-warm font-heading font-bold"
               disabled={loading}
             >
               {loading ? "Aguarde..." : isLogin ? "Entrar" : "Criar Conta"}
@@ -105,7 +105,7 @@ export default function Auth() {
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-colors"
             >
               {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Faça login"}
             </button>

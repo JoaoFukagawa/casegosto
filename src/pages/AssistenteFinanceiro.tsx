@@ -134,7 +134,7 @@ export default function AssistenteFinanceiro() {
       </div>
 
       {criticas >= 3 && (
-        <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
+        <div className="flex items-center gap-2 rounded-lg bg-[var(--color-danger-bg)] border border-[var(--color-danger)] px-4 py-3 text-sm text-[var(--color-danger)]">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           <span className="font-medium">Atenção:</span> {criticas} contas atrasadas precisam de prioridade.
         </div>
@@ -154,12 +154,12 @@ export default function AssistenteFinanceiro() {
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-sm font-medium">Meta Mensal</span>
-                <span className="text-xs text-muted-foreground">R$ {receitaMes.toFixed(0)} / R$ {meta}</span>
+                <span className="text-xs text-[var(--color-text-secondary)]">R$ {receitaMes.toFixed(0)} / R$ {meta}</span>
               </div>
               <Progress value={progressoPct} className="h-2" />
               <div className="flex items-center gap-2">
                 <Input type="number" value={meta} onChange={(e) => setMeta(Number(e.target.value))} className="h-8 text-sm" />
-                <span className="text-xs text-muted-foreground shrink-0">{progressoPct}%</span>
+                <span className="text-xs text-[var(--color-text-secondary)] shrink-0">{progressoPct}%</span>
               </div>
             </CardContent>
           </Card>
@@ -182,13 +182,13 @@ export default function AssistenteFinanceiro() {
                   {sorted.slice(0, 10).map((b) => {
                     const prio = prioridadeDe(b);
                     return (
-                      <div key={b.id} className="flex items-start gap-2 rounded-lg border border-border p-2 text-sm">
+                      <div key={b.id} className="flex items-start gap-2 rounded-lg border border-[var(--color-border)] p-2 text-sm">
                         <span className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${prio === "high" ? "bg-destructive" : prio === "medium" ? "bg-warning" : "bg-success"}`} />
                         <div className="flex-1 min-w-0">
                           <p className="truncate font-medium">{b.nome}</p>
-                          <p className="text-xs text-muted-foreground">R$ {Number(b.valor).toFixed(2)}</p>
+                          <p className="text-xs text-[var(--color-text-secondary)]">R$ {Number(b.valor).toFixed(2)}</p>
                         </div>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-destructive" onClick={() => deleteBill.mutate(b.id)}>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-[var(--color-danger)]" onClick={() => deleteBill.mutate(b.id)}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>

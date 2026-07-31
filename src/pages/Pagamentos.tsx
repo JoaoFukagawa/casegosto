@@ -53,17 +53,17 @@ function MethodDialog({ method, trigger }: { method?: PaymentMethod; trigger: Re
               <Input id="label" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Ex: Vale Refeição" />
             </div>
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+          <div className="flex items-center justify-between rounded-lg border border-[var(--color-border)] p-3">
             <div>
               <Label>Ativo</Label>
-              <p className="text-xs text-muted-foreground">Aparece na lista ao criar pedidos</p>
+              <p className="text-xs text-[var(--color-text-secondary)]">Aparece na lista ao criar pedidos</p>
             </div>
             <Switch checked={active} onCheckedChange={setActive} />
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+          <div className="flex items-center justify-between rounded-lg border border-[var(--color-border)] p-3">
             <div>
               <Label>Recebe em dinheiro (troco)</Label>
-              <p className="text-xs text-muted-foreground">Habilita campo de valor recebido / troco</p>
+              <p className="text-xs text-[var(--color-text-secondary)]">Habilita campo de valor recebido / troco</p>
             </div>
             <Switch checked={isCash} onCheckedChange={setIsCash} />
           </div>
@@ -112,7 +112,7 @@ export default function Pagamentos() {
                     <span className="text-2xl">{m.emoji}</span>
                     <div className="min-w-0">
                       <CardTitle className="text-base font-heading truncate">{m.label}</CardTitle>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-[var(--color-text-secondary)]">
                         {m.is_cash ? "💵 Recebe troco · " : ""}
                         {m.active ? "Ativo" : "Inativo"}
                       </p>
@@ -132,7 +132,7 @@ export default function Pagamentos() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="text-destructive hover:bg-destructive/10"
+                      className="text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)]"
                       title="Excluir"
                       onClick={() => {
                         if (confirm(`Excluir "${m.label}"? Pedidos antigos manterão o histórico.`)) {
