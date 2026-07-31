@@ -5,7 +5,7 @@ export default function PageHeader({ title, subtitle, actions }: { title: ReactN
     <div className="flex items-center justify-between flex-wrap gap-4">
       <div>
         <h2 className="text-[26px] font-bold font-heading text-[var(--color-text-primary)]">{title}</h2>
-        {subtitle && <p className="text-[13px] text-[var(--color-text-muted)] mt-0.5">{subtitle}</p>}
+        {subtitle && <p className="text-[13px] text-[var(--color-text-secondary)] mt-0.5">{subtitle}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>

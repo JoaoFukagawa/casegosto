@@ -197,7 +197,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center justify-between py-3">
             <Brand />
             <div className="flex items-center gap-3">
-              <span className="text-xs text-[var(--color-text-secondary)] hidden sm:inline font-medium">{user?.email}</span>
+              <span className="text-xs text-[var(--color-text-primary)] opacity-60 hidden sm:inline font-medium">{user?.email}</span>
               <button
                 onClick={toggleTheme}
                 title={theme === "dark" ? "Tema claro" : "Tema escuro"}

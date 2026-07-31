@@ -32,7 +32,7 @@ const statusLabel: Record<string, string> = {
 function SectionTitle({ icon: Icon, title, count, tone = "default" }: { icon: any; title: string; count: number; tone?: "default" | "success" }) {
   const iconColor = tone === "success" ? "text-[var(--color-success)]" : "text-[var(--color-accent)]";
   return (
-    <h3 className="text-[13px] font-semibold uppercase tracking-[1.2px] text-[var(--color-text-secondary)] flex items-center gap-2">
+    <h3 className="text-[13px] font-semibold uppercase tracking-[1.2px] text-[var(--color-text-primary)] opacity-70 flex items-center gap-2">
       <Icon className={`h-4 w-4 ${iconColor}`} />
       {title}
       <span className="text-[var(--color-accent)] font-semibold">({count})</span>

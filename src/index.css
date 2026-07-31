@@ -18,8 +18,8 @@
     --color-accent-muted: rgba(200, 133, 42, 0.12);
     --color-accent-text: #0F0D0B;
     --color-text-primary: #F5F0E8;
-    --color-text-secondary: #9E9488;
-    --color-text-muted: #5C5650;
+    --color-text-secondary: #C4A882;
+    --color-text-muted: #7A6A58;
     --color-text-inverse: #FFFFFF;
     --color-success: #4A9C6F;
     --color-success-bg: rgba(74, 156, 111, 0.12);
@@ -201,6 +201,9 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-body);
+  }
+
+  :root[data-theme="dark"] body {
     color-scheme: dark;
   }
 
