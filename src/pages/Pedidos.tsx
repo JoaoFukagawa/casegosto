@@ -56,6 +56,11 @@ export default function Pedidos() {
           <div>
             <CardTitle className="font-heading text-lg flex items-center gap-2">
               {order.customer_name}
+              {order.source === "online" && (
+                <span className="text-[11px] font-bold uppercase tracking-wide text-white bg-[var(--color-accent)] rounded-full px-2 py-0.5">
+                  🛒 Online
+                </span>
+              )}
               {order.delivery_time && (
                 <span className="text-sm font-bold text-[var(--color-accent)] bg-[var(--color-accent-muted)] px-2 py-0.5 rounded-md">
                   ⏰ {order.delivery_time.slice(0, 5)}

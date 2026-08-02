@@ -105,6 +105,7 @@ export async function createPublicOrder(payload: {
     status: "pendente",
     total,
     user_id: PUBLIC_ORDER_USER_ID,
+    source: "online",
   }).select().single();
 
   if (orderError) throw new Error(orderError.message);
@@ -120,6 +121,16 @@ export async function createPublicOrder(payload: {
 
   const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
   if (itemsError) throw new Error(itemsError.message);
+
+  const paymentLabel = { pix: "PIX", dinheiro: "Dinheiro", cartao: "Cartão" }[payload.payment_method] || payload.payment_method;
+  const { error: payError } = await supabase.from("order_payments").insert({
+    order_id: order.id,
+    method_value: payload.payment_method,
+    method_label: paymentLabel,
+    amount: total,
+    user_id: PUBLIC_ORDER_USER_ID,
+  });
+  if (payError) throw new Error(payError.message);
 
   return order;
 }

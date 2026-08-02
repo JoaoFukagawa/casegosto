@@ -152,6 +152,7 @@ export default function NewOrderDialog() {
         delivery_fee: deliveryType === "entrega" ? parseFloat(deliveryFee) || 0 : 0,
         payment_method: primaryMethod, delivery_time: deliveryTime || null,
         created_at: selectedDate.toISOString(), user_id: uid,
+        source: "admin",
       }).select().single();
       if (orderError) throw orderError;
 
