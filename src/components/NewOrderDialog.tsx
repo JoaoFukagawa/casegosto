@@ -27,7 +27,7 @@ export default function NewOrderDialog() {
   const [notes, setNotes] = useState("");
   const [deliveryType, setDeliveryType] = useState("retirada");
   const [deliveryAddress, setDeliveryAddress] = useState("");
-  const [deliveryFee, setDeliveryFee] = useState("6.00");
+  const [deliveryFee, setDeliveryFee] = useState("7.00");
   const [paymentMethod, setPaymentMethod] = useState("dinheiro");
   const [splits, setSplits] = useState<PaymentSplit[]>([
     { method_value: "dinheiro", method_label: "Dinheiro", amount: "" },
@@ -200,7 +200,7 @@ export default function NewOrderDialog() {
   const resetForm = () => {
     setCustomerName(""); setCustomerPhone(""); setMatchedClienteId(null); setPratoDoDia("");
     setNotes(""); clearCart(); setDeliveryType("retirada"); setDeliveryAddress("");
-    setDeliveryFee("6.00"); setPaymentMethod("dinheiro");
+    setDeliveryFee("7.00"); setPaymentMethod("dinheiro");
     setSplits([{ method_value: "dinheiro", method_label: "Dinheiro", amount: "" }]);
     setCashReceived(""); setOrderDate(format(new Date(), "yyyy-MM-dd")); setDeliveryTime("");
   };

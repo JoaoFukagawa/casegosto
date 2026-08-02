@@ -38,7 +38,7 @@ export default function EditOrderDialog({ order }: EditOrderDialogProps) {
   const [notes, setNotes] = useState(order.notes || "");
   const [deliveryType, setDeliveryType] = useState(order.delivery_type);
   const [deliveryAddress, setDeliveryAddress] = useState(order.delivery_address || "");
-  const [deliveryFee, setDeliveryFee] = useState(String(order.delivery_fee ?? 6));
+  const [deliveryFee, setDeliveryFee] = useState(String(order.delivery_fee ?? 7));
   const [paymentMethod, setPaymentMethod] = useState(order.payment_method);
   const [deliveryTime, setDeliveryTime] = useState(order.delivery_time || "");
   const [cashReceived, setCashReceived] = useState("");
@@ -122,7 +122,7 @@ export default function EditOrderDialog({ order }: EditOrderDialogProps) {
       setNotes(order.notes || "");
       setDeliveryType(order.delivery_type);
       setDeliveryAddress(order.delivery_address || "");
-      setDeliveryFee(String(order.delivery_fee ?? 6));
+      setDeliveryFee(String(order.delivery_fee ?? 7));
       setPaymentMethod(order.payment_method);
       setDeliveryTime(order.delivery_time || "");
       setCashReceived("");

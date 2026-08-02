@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Minus, ShoppingCart, Store, Truck, ImageIcon, CheckCircle2 } from "lucide-react";
+import { Plus, Minus, ShoppingCart, Store, Truck, ImageIcon, CheckCircle2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { getPublicMenuItems, checkStock, createPublicOrder } from "@/services/public-orders";
+
+const STORE_WHATSAPP = "554399270742";
 
 type CartItem = {
   menu_item_id: string;
@@ -27,7 +29,9 @@ export default function CardapioOnline() {
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("pix");
+  const [changeAmount, setChangeAmount] = useState("");
   const [orderDone, setOrderDone] = useState(false);
+  const [lastOrderMsg, setLastOrderMsg] = useState("");
 
   const { data: items, isLoading } = useQuery({
     queryKey: ["cardapio-online"],
@@ -62,7 +66,7 @@ export default function CardapioOnline() {
     setCart((prev) => prev.filter((c) => c.menu_item_id !== id));
   };
 
-  const total = cart.reduce((s, c) => s + c.price * c.quantity, 0) + (deliveryType === "entrega" ? 6 : 0);
+  const total = cart.reduce((s, c) => s + c.price * c.quantity, 0) + (deliveryType === "entrega" ? 7 : 0);
 
   const placeOrder = useMutation({
     mutationFn: async () => {
@@ -71,16 +75,24 @@ export default function CardapioOnline() {
       if (deliveryType === "entrega" && !address.trim()) throw new Error("Informe o endereço de entrega");
       const stockCheck = await checkStock(cart.map((c) => ({ menu_item_id: c.menu_item_id, quantity: c.quantity })));
       if (!stockCheck.ok) throw new Error(`Estoque insuficiente: ${stockCheck.errors.join("; ")}`);
+      const changeNote = changeAmount.trim() ? `Troco para: R$ ${changeAmount.trim()}` : "";
+      const fullNotes = [notes.trim(), changeNote].filter(Boolean).join(" · ");
       await createPublicOrder({
         customer_name: name, customer_phone: phone || undefined,
         delivery_type: deliveryType, delivery_address: address || undefined,
-        notes: notes || undefined, payment_method: paymentMethod,
+        notes: fullNotes || undefined,
+        payment_method: paymentMethod,
         items: cart.map((c) => ({ menu_item_id: c.menu_item_id, quantity: c.quantity, unit_price: c.price })),
       });
     },
     onSuccess: () => {
       toast.success("Pedido realizado! Em breve entraremos em contato.");
-      setCart([]); setName(""); setPhone(""); setAddress(""); setNotes("");
+      const lines = cart.map((c) => `${c.quantity}x ${c.name} — R$ ${(c.price * c.quantity).toFixed(2)}`);
+      const feeNote = deliveryType === "entrega" ? " + R$ 7,00 entrega" : "";
+      setLastOrderMsg(
+        `Olá, Casegosto! Acabei de fazer o pedido pelo site:\n\n${lines.join("\n")}\n\nTotal: R$ ${total.toFixed(2)} (${deliveryType === "entrega" ? "entrega" : "retirada"}${feeNote})\n\nNome: ${name.trim()}${phone.trim() ? `\nWhatsApp: ${phone.trim()}` : ""}\n\nPode confirmar?`
+      );
+      setCart([]); setName(""); setPhone(""); setAddress(""); setNotes(""); setChangeAmount("");
       setOrderDone(true);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -93,8 +105,16 @@ export default function CardapioOnline() {
           <CardContent className="py-12 px-6 space-y-4">
             <CheckCircle2 className="h-16 w-16 text-[var(--color-accent)] mx-auto" />
             <h2 className="text-2xl font-heading font-bold text-[var(--color-text-primary)]">Pedido Recebido! 🎉</h2>
-            <p className="text-[var(--color-text-secondary)] text-sm">Logo entraremos em contato para confirmar. Fique de olho no WhatsApp!</p>
-            <Button onClick={() => setOrderDone(false)} className="mt-4 w-full gradient-warm text-white font-heading font-bold">
+            <p className="text-[var(--color-text-secondary)] text-sm">Confirme pelo WhatsApp para agilizar seu pedido.</p>
+            <a
+              href={`https://wa.me/${STORE_WHATSAPP}?text=${encodeURIComponent(lastOrderMsg)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#25D366] text-white font-heading font-bold py-3.5 text-base hover:opacity-90 transition-opacity"
+            >
+              <MessageCircle className="h-5 w-5" /> Confirmar no WhatsApp
+            </a>
+            <Button onClick={() => setOrderDone(false)} className="w-full gradient-warm text-white font-heading font-bold">
               Fazer novo pedido
             </Button>
           </CardContent>
@@ -107,7 +127,7 @@ export default function CardapioOnline() {
     <div className="min-h-screen bg-[var(--color-bg)]">
       <header className="gradient-warm px-4 py-8 text-center">
         <img src="/logo.jpg" alt="Casegosto" className="h-16 mx-auto mb-2" />
-        <h1 className="font-heading text-2xl font-bold text-white">Casa e Gosto</h1>
+        <h1 className="font-heading text-2xl font-bold text-white">Casegosto</h1>
         <p className="text-white/80 text-sm mt-1">Faça seu pedido online 🍽️</p>
       </header>
 
@@ -141,19 +161,19 @@ export default function CardapioOnline() {
                         </p>
                         {outOfStock && <span className="self-start bg-red-100 text-red-700 rounded-full px-2 py-0.5 text-xs font-medium mt-1">Esgotado</span>}
                         {inCart ? (
-                          <div className="flex items-center gap-2 mt-2">
-                            <Button variant="outline" size="icon" className="h-7 w-7 border-[var(--color-accent)] text-[var(--color-accent)]" onClick={() => updateQty(item.id, -1)}>
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                            <Button variant="outline" size="icon" className="h-8 w-8 border-[var(--color-accent)] text-[var(--color-accent)]" onClick={() => updateQty(item.id, -1)}>
                               <Minus className="h-3 w-3" />
                             </Button>
                             <span className="w-6 text-center font-bold text-sm text-[var(--color-text-primary)]">{inCart.quantity}</span>
-                            <Button variant="outline" size="icon" className="h-7 w-7 border-[var(--color-accent)] text-[var(--color-accent)]" onClick={() => updateQty(item.id, 1)}>
+                            <Button variant="outline" size="icon" className="h-8 w-8 border-[var(--color-accent)] text-[var(--color-accent)]" onClick={() => updateQty(item.id, 1)}>
                               <Plus className="h-3 w-3" />
                             </Button>
                             <span className="font-heading font-bold text-sm text-[var(--color-accent)] ml-auto">R$ {(item.price * inCart.quantity).toFixed(2)}</span>
-                            <Button variant="ghost" size="sm" className="h-7 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]" onClick={() => removeItem(item.id)}>Remover</Button>
+                            <Button variant="ghost" size="sm" className="h-8 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]" onClick={() => removeItem(item.id)}>Remover</Button>
                           </div>
                         ) : (
-                          <Button size="sm" className="self-start mt-2 gradient-warm text-white font-heading font-bold" onClick={() => addToCart(item)} disabled={outOfStock}>
+                          <Button size="sm" className="self-start mt-2 min-h-10 gradient-warm text-white font-heading font-bold" onClick={() => addToCart(item)} disabled={outOfStock}>
                             <Plus className="h-3 w-3 mr-1" /> Adicionar
                           </Button>
                         )}
@@ -191,6 +211,13 @@ export default function CardapioOnline() {
                   </SelectContent>
                 </Select>
               </div>
+              {paymentMethod === "dinheiro" && (
+                <div>
+                  <Label className="text-sm font-medium text-[var(--color-text-secondary)]">Precisa de troco? Digite o valor</Label>
+                  <Input value={changeAmount} onChange={(e) => setChangeAmount(e.target.value)} placeholder="Ex: 50" inputMode="decimal"
+                    className="border-[var(--color-border)] bg-[var(--color-surface)] focus:border-[var(--color-accent)]" />
+                </div>
+              )}
               <div>
                 <Label className="text-sm font-medium text-[var(--color-text-secondary)]">Receber</Label>
                 <div className="grid grid-cols-2 gap-3 mt-1">
@@ -204,7 +231,7 @@ export default function CardapioOnline() {
                     >
                       {tipo === "retirada" ? <Store className="h-6 w-6 text-[var(--color-accent)]" /> : <Truck className="h-6 w-6 text-[var(--color-accent)]" />}
                       <span className="text-sm font-heading font-bold capitalize text-[var(--color-text-primary)]">
-                        {tipo === "retirada" ? "Retirar" : "Entrega (+R$ 6,00)"}
+                        {tipo === "retirada" ? "Retirar" : "Entrega (+R$ 7,00)"}
                       </span>
                     </button>
                   ))}
@@ -222,7 +249,7 @@ export default function CardapioOnline() {
               </div>
             </div>
 
-            <div className="sticky bottom-0 -mx-4 px-4 pt-4 pb-4 bg-[var(--color-surface)]/90 border-t border-[var(--color-border)] backdrop-blur-sm">
+            <div className="sticky bottom-0 -mx-4 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-[var(--color-surface)]/90 border-t border-[var(--color-border)] backdrop-blur-sm">
               <div className="flex items-center justify-between mb-3">
                 <span className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
                   <ShoppingCart className="h-4 w-4 text-[var(--color-accent)]" />

@@ -1,6 +1,22 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export async function getPublicMenuItems() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const startOfDay = today.toISOString();
+
+  const { data: sold } = await supabase
+    .from("order_items")
+    .select("menu_item_id, quantity, orders!inner(created_at, status)")
+    .gte("orders.created_at", startOfDay);
+
+  const soldMap: Record<string, number> = {};
+  for (const item of sold || []) {
+    const order = item.orders as any;
+    if (order?.status === "cancelado") continue;
+    soldMap[item.menu_item_id] = (soldMap[item.menu_item_id] || 0) + item.quantity;
+  }
+
   const { data, error } = await supabase
     .from("menu_items")
     .select("id, name, description, price, category, unit_type, stock, photo_url, stock_by_unit")
@@ -8,10 +24,15 @@ export async function getPublicMenuItems() {
     .order("category")
     .order("name");
   if (error) throw error;
-  return (data || []).map((item) => ({
-    ...item,
-    stock: item.stock as number | null,
-  }));
+
+  return (data || []).map((item) => {
+    const base = item.stock as number | null;
+    const remaining = base == null ? null : Math.max(0, base - (soldMap[item.id] || 0));
+    return {
+      ...item,
+      stock: remaining,
+    };
+  });
 }
 
 export async function checkStock(items: { menu_item_id: string; quantity: number }[]) {
@@ -65,7 +86,7 @@ export async function createPublicOrder(payload: {
   payment_method: string;
   items: { menu_item_id: string; quantity: number; unit_price: number; weight?: number }[];
 }) {
-  const fee = payload.delivery_type === "entrega" ? 6 : 0;
+  const fee = payload.delivery_type === "entrega" ? 7 : 0;
   const total = payload.items.reduce((sum, item) => {
     if (item.weight) return sum + item.unit_price * item.weight;
     return sum + item.unit_price * item.quantity;
