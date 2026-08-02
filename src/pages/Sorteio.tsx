@@ -8,7 +8,7 @@ import { PartyPopper, Copy, Download, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useDashboardTodayOrders } from "@/hooks/useOrders";
 
-type CustomerEntry = { name: string; phone: string };
+type CustomerEntry = { name: string };
 
 function normalize(s: string) {
   return (s || "").toLowerCase().trim().replace(/\s+/g, " ");
@@ -23,22 +23,26 @@ export default function Sorteio() {
   const [lastWinner, setLastWinner] = useState<string | null>(null);
 
   const customers = useMemo<CustomerEntry[]>(() => {
-    const map = new Map<string, CustomerEntry>();
+    const seen = new Set<string>();
+    const result: CustomerEntry[] = [];
     for (const o of todayOrders || []) {
       if (o.status === "cancelado") continue;
       const name = (o.customer_name || "").trim();
       if (!name) continue;
-      const key = `${normalize(name)}|${(o.customer_phone || "").replace(/\D/g, "")}`;
-      if (!map.has(key)) map.set(key, { name, phone: o.customer_phone || "" });
+      const key = normalize(name);
+      if (!seen.has(key)) {
+        seen.add(key);
+        result.push({ name });
+      }
     }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+    return result.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   }, [todayOrders]);
 
-  const remaining = customers.filter((c) => !winners.includes(`${c.name}|${c.phone}`));
+  const remaining = customers.filter((c) => !winners.includes(c.name));
 
   const copyList = () => {
     if (!customers.length) return;
-    const text = customers.map((c) => `${c.name}${c.phone ? ` - ${c.phone}` : ""}`).join("\n");
+    const text = customers.map((c) => c.name).join("\n");
     navigator.clipboard.writeText(text);
     toast.success(`${customers.length} clientes copiados!`);
   };
@@ -46,7 +50,7 @@ export default function Sorteio() {
   const exportTxt = () => {
     if (!customers.length) return;
     const text = `CLIENTES DO SORTEIO (${format(today, "dd/MM/yyyy")})\n\n${customers
-      .map((c, i) => `${i + 1}. ${c.name}${c.phone ? ` - ${c.phone}` : ""}`)
+      .map((c, i) => `${i + 1}. ${c.name}`)
       .join("\n")}`;
     const blob = new Blob(["\uFEFF" + text], { type: "text/plain;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -61,7 +65,7 @@ export default function Sorteio() {
   const draw = () => {
     if (!remaining.length) return;
     const winner = remaining[Math.floor(Math.random() * remaining.length)];
-    setWinners((w) => [...w, `${winner.name}|${winner.phone}`]);
+    setWinners((w) => [...w, winner.name]);
     setLastWinner(winner.name);
     toast.success(`🎉 Vencedor: ${winner.name}`);
   };
@@ -123,12 +127,11 @@ export default function Sorteio() {
           ) : (
             <ul className="max-h-[50vh] overflow-auto divide-y divide-[var(--color-border)]">
               {customers.map((c) => {
-                const drawn = winners.includes(`${c.name}|${c.phone}`);
+                const drawn = winners.includes(c.name);
                 return (
-                  <li key={`${c.name}|${c.phone}`} className={`flex items-center justify-between px-4 py-3 text-sm ${drawn ? "opacity-40" : ""}`}>
+                  <li key={c.name} className={`flex items-center justify-between px-4 py-3 text-sm ${drawn ? "opacity-40" : ""}`}>
                     <span className="font-medium text-[var(--color-text-primary)]">{c.name}</span>
                     <span className="flex items-center gap-2">
-                      {c.phone && <span className="text-xs text-[var(--color-text-secondary)]">{c.phone}</span>}
                       {drawn && <span className="text-xs text-[var(--color-accent)] font-semibold">✔ sorteado</span>}
                     </span>
                   </li>
