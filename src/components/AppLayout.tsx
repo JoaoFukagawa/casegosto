@@ -3,7 +3,7 @@ import { useState } from "react";
 import {
   LayoutDashboard, ClipboardList, UtensilsCrossed, History, LogOut, Wallet,
   FileBarChart, Package, Bot, Users, Box, ChefHat, DollarSign, Sparkles,
-  ChevronDown, Menu, Sun, Moon,
+  ChevronDown, Menu, Sun, Moon, PartyPopper,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -17,6 +17,7 @@ type NavItem = { to: string; label: string; icon: any };
 type NavGroup = { label: string; icon: any; items: NavItem[] };
 
 const home: NavItem = { to: "/", label: "Painel", icon: LayoutDashboard };
+const sorteio: NavItem = { to: "/sorteio", label: "Sorteio", icon: PartyPopper };
 
 const groups: NavGroup[] = [
   {
@@ -87,6 +88,18 @@ function DesktopNav({ pathname }: { pathname: string }) {
         {home.label}
       </NavLink>
 
+      <NavLink
+        to={sorteio.to}
+        className={`flex items-center gap-2 px-4 py-3 text-[13px] font-medium uppercase tracking-[0.8px] border-b-2 transition-all duration-200 ${
+          pathname === sorteio.to
+            ? "border-[var(--color-accent)] text-[var(--color-accent)]"
+            : "border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border)]"
+        }`}
+      >
+        <sorteio.icon className="h-4 w-4" />
+        {sorteio.label}
+      </NavLink>
+
       {groups.map((group) => {
         const active = isGroupActive(group, pathname);
         return (
@@ -151,6 +164,17 @@ function MobileNav({ pathname }: { pathname: string }) {
             >
               <home.icon className="h-4 w-4" />
               {home.label}
+            </NavLink>
+
+            <NavLink
+              to={sorteio.to}
+              onClick={() => setOpen(false)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                pathname === "/sorteio" ? "bg-[var(--color-accent-muted)] text-[var(--color-accent)]" : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)]"
+              }`}
+            >
+              <sorteio.icon className="h-4 w-4" />
+              {sorteio.label}
             </NavLink>
 
             {groups.map((group) => (
