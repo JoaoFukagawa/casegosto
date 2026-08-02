@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
+const PUBLIC_ORDER_USER_ID = "f6dd0c90-a2e6-4df9-8a30-1f7bcddd4e3e";
+
 export async function getPublicMenuItems() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -102,6 +104,7 @@ export async function createPublicOrder(payload: {
     payment_method: payload.payment_method,
     status: "pendente",
     total,
+    user_id: PUBLIC_ORDER_USER_ID,
   }).select().single();
 
   if (orderError) throw new Error(orderError.message);
@@ -112,6 +115,7 @@ export async function createPublicOrder(payload: {
     quantity: item.quantity,
     unit_price: item.unit_price,
     weight: item.weight || null,
+    user_id: PUBLIC_ORDER_USER_ID,
   }));
 
   const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
