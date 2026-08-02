@@ -43,7 +43,7 @@ export async function getRecentOrders(limit = 8) {
 export async function getDashboardTodayOrders(startOfDay: string) {
   const { data, error } = await supabase
     .from("orders")
-    .select("*")
+    .select("*, order_items(*, menu_items(name)), order_payments(*)")
     .gte("created_at", startOfDay)
     .order("created_at", { ascending: false });
   if (error) throw error;
