@@ -3,11 +3,10 @@ import { useState } from "react";
 import {
   LayoutDashboard, ClipboardList, UtensilsCrossed, History, LogOut, Wallet,
   FileBarChart, Package, Bot, Users, Box, ChefHat, DollarSign, Sparkles,
-  ChevronDown, Menu, Sun, Moon, Printer,
+  ChevronDown, Menu, Sun, Moon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
-import { AutoPrintProvider, useAutoPrintContext } from "@/components/AutoPrintProvider";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -186,32 +185,12 @@ function MobileNav({ pathname }: { pathname: string }) {
   );
 }
 
-function AutoPrintToggle() {
-  const { enabled, setEnabled } = useAutoPrintContext();
-  return (
-    <button
-      onClick={() => setEnabled(!enabled)}
-      title={enabled ? "Impressão automática ligada — clique para desligar" : "Impressão automática desligada — clique para ligar"}
-      aria-label="Alternar impressão automática"
-      className={`relative p-2 rounded-lg transition-colors duration-200 ${
-        enabled
-          ? "bg-[var(--color-accent-muted)] text-[var(--color-accent)]"
-          : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-accent)]"
-      }`}
-    >
-      <Printer className="h-4 w-4" />
-      {enabled && <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-[var(--color-success)]" />}
-    </button>
-  );
-}
-
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { signOut, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <AutoPrintProvider>
     <div className="min-h-screen bg-[var(--color-bg)]">
       <header className="bg-[var(--color-bg)] border-b border-[var(--color-border)] shadow-[0_1px_8px_rgba(90,60,20,0.08)]">
         <div className="container mx-auto px-3 sm:px-6">
@@ -227,7 +206,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               >
                 {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </button>
-              <AutoPrintToggle />
               <Button
                 variant="ghost"
                 size="icon"
@@ -250,6 +228,5 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
     </div>
-    </AutoPrintProvider>
   );
 }
