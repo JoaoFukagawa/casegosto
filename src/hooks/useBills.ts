@@ -5,6 +5,7 @@ import { createExpense } from "@/services/expenses";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { mapBillCategoryToExpenseCategory } from "@/lib/finance-categories";
 
 export function useBills() {
   return useQuery({
@@ -23,7 +24,7 @@ export function useMarkBillPaid() {
         if (u.user) {
           await createExpense({
             description: bill.nome,
-            category: "outros",
+            category: mapBillCategoryToExpenseCategory(bill.categoria) ?? "outros",
             amount: Number(bill.valor),
             expense_date: format(new Date(), "yyyy-MM-dd"),
           });

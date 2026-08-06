@@ -10,8 +10,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { createBill } from "@/services/bills";
 import { queryKeys } from "@/lib/query-keys";
-
-const CATEGORIAS_SUGESTAO = ["Moradia", "Energia/Água", "Ingredientes", "Transporte", "Internet/Telefone", "Funcionários", "Impostos", "Outros"];
+import { BILL_CATEGORIES as CATEGORIAS_SUGESTAO } from "@/lib/finance-categories";
 
 function statusFromDate(dateStr: string) {
   const today = new Date(); today.setHours(0, 0, 0, 0);

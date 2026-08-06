@@ -1,5 +1,6 @@
 // Edge function: chat com IA para o assistente financeiro da marmitaria
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { BILL_CATEGORIES, mapBillCategoryToExpenseCategory } from "../_shared/finance-categories.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -59,17 +60,6 @@ function mesesAtrasados(dateStr: string): number {
   return Math.max(1, (today.getFullYear() - d.getFullYear()) * 12 + (today.getMonth() - d.getMonth()));
 }
 
-// Mapeia uma categoria livre para uma categoria de despesa operacional do mês.
-// Retorna null se NÃO for uma despesa operacional (ex: aluguel, impostos).
-function mapExpenseCategory(cat: string): string | null {
-  const c = (cat || "").toLowerCase();
-  if (/(ingredient|mercado|merca|alimento|comida|hortifr|carne|frango|fruta|verdura|legume|couve)/.test(c)) return "mercado";
-  if (/(embalag|marmitex|pote|sacola|descart)/.test(c)) return "embalagens";
-  if (/(g[áa]s|botij)/.test(c)) return "gas";
-  if (/(entregad|motoboy|ifood|uber|delivery)/.test(c)) return "entregador";
-  return null;
-}
-
 const TOOLS = [
   {
     type: "function",
@@ -84,7 +74,7 @@ const TOOLS = [
           valor: { type: "number", description: "Valor em reais (apenas número, sem R$)." },
           categoria: {
             type: "string",
-            description: "Categoria da conta. Sugestões: Moradia, Energia/Água, Ingredientes, Transporte, Internet/Telefone, Funcionários, Impostos, Outros.",
+            description: `Categoria da conta. Sugestões: ${BILL_CATEGORIES.join(", ")}.`,
           },
           due_date: {
             type: "string",
@@ -184,7 +174,7 @@ ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
 - Seja direto, empático e em português brasileiro. Use valores em R$ formatados e dados REAIS acima.
 - FINANÇAS: priorize contas que causam corte (luz, água) ou despejo (aluguel). Quando o usuário disser quanto tem disponível, sugira exatamente quais contas pagar com nomes e valores reais.
 - CARDÁPIO: quando perguntarem sobre o que vender, sugira pratos populares de marmitaria brasileira (frango grelhado, picanha, feijoada, estrogonofe, parmegiana, bife acebolado, etc) sempre com proteína + carboidrato + salada. Dê sugestões por dia da semana. Considere o que já está no cardápio cadastrado e nos ingredientes/gastos recentes para evitar desperdício. Inclua dicas de preço (markup 2,5x a 3x).
-- LANÇAMENTO AUTOMÁTICO: quando o usuário disser que teve um gasto/conta nova (ex: "Tive uma conta de R$100", "comprei R$52 de couve", "gastei R$80 com ingredientes"), CHAME registrar_conta. Se não houver data, use hoje (${hoje}). Use categorias claras: "Ingredientes" (couve, carne, mercado, comida), "Embalagens" (marmitex, potes), "Gás", "Entregador" (motoboy, ifood) — essas viram despesa do mês automaticamente. Para outras (aluguel, luz, impostos), continue como conta a pagar normal.
+- LANÇAMENTO AUTOMÁTICO: quando o usuário disser que teve um gasto/conta nova (ex: "Tive uma conta de R$100", "comprei R$52 de couve", "gastei R$80 com ingredientes", "tirei R$50 de retirada", "coloquei R$30 na caixinha", "peguei R$20 de troco"), CHAME registrar_conta. Se não houver data, use hoje (${hoje}). Use categorias claras: "Ingredientes" (couve, carne, mercado, comida), "Embalagens" (marmitex, potes), "Gás", "Entregador" (motoboy, ifood), "Retirada/Pró-labore" (retirada do dono, pró-labore), "Diária" (diária de funcionário), "Caixinha" (caixinha/gorjeta), "Troco" (troco de caixa) — essas viram despesa do mês automaticamente. Para outras (aluguel, luz, impostos), continue como conta a pagar normal.
 - BAIXA DE CONTA: quando o usuário disser que pagou/deu baixa em uma conta existente (ex: "Paguei o aluguel hoje", "Dei baixa na conta de luz", "A água foi paga"), procure na lista de CONTAS PENDENTES acima a conta correspondente (faça match pelo nome/categoria, ignorando maiúsculas/minúsculas) e CHAME dar_baixa_conta com o bill_id (UUID entre colchetes). Se nenhuma conta bater, avise que não encontrou. Se houver várias possíveis, pergunte qual antes de chamar. Após confirmar a baixa, responda algo como "Pronto! Marquei o [nome] como pago hoje, ${hojeBR}."`;
 
     const convo: any[] = [{ role: "system", content: systemContent }, ...messages];
@@ -231,7 +221,7 @@ ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
           } else {
             const due_date = args.due_date || hoje;
             const cat = String(args.categoria ?? "Outros");
-            const expenseCat = mapExpenseCategory(cat);
+            const expenseCat = mapBillCategoryToExpenseCategory(cat);
             const isOperacional = expenseCat !== null;
             const valor = Number(args.valor ?? 0);
             const nome = String(args.nome ?? "Conta");
@@ -278,7 +268,7 @@ ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
               result = { ok: false, error: upd.error.message };
             } else {
               if (userId) {
-                const expenseCat = mapExpenseCategory(target.categoria) ?? "outros";
+                const expenseCat = mapBillCategoryToExpenseCategory(target.categoria) ?? "outros";
                 await supabase.from("expenses").insert({
                   user_id: userId,
                   description: target.nome,

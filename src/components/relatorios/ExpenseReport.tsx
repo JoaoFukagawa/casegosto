@@ -11,15 +11,9 @@ import { ptBR } from "date-fns/locale";
 import { CalendarDays, Download, TrendingDown, FileBarChart } from "lucide-react";
 import StatsCard from "@/components/StatsCard";
 import { useExpenseReport } from "@/hooks/useExpenses";
+import { EXPENSE_CATEGORIES as BASE_EXPENSE_CATEGORIES, getExpenseCategoryLabel } from "@/lib/finance-categories";
 
-const EXPENSE_CATEGORIES = [
-  { value: "todos", label: "Todas as categorias" },
-  { value: "mercado", label: "🛒 Mercado" },
-  { value: "embalagens", label: "📦 Embalagens" },
-  { value: "gas", label: "🔥 Gás" },
-  { value: "entregador", label: "🛵 Entregador" },
-  { value: "outros", label: "📋 Outros" },
-];
+const EXPENSE_CATEGORIES = [{ value: "todos", label: "Todas as categorias" }, ...BASE_EXPENSE_CATEGORIES];
 
 export default function ExpenseReport() {
   const today = new Date();
@@ -163,7 +157,7 @@ export default function ExpenseReport() {
                     <TableRow key={exp.id}>
                       <TableCell className="text-sm">{format(parseISO(exp.expense_date), "dd/MM/yyyy")}</TableCell>
                       <TableCell className="font-medium">{exp.description}</TableCell>
-                      <TableCell className="text-sm">{EXPENSE_CATEGORIES.find((c) => c.value === exp.category)?.label ?? exp.category}</TableCell>
+                      <TableCell className="text-sm">{getExpenseCategoryLabel(exp.category)}</TableCell>
                       <TableCell className="text-right font-bold text-[var(--color-danger)]">R$ {Number(exp.amount).toFixed(2)}</TableCell>
                     </TableRow>
                   ))}

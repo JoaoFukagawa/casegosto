@@ -14,14 +14,7 @@ import { queryKeys } from "@/lib/query-keys";
 import { getFinanceDayOrders, getFinanceMonthOrders } from "@/services/orders";
 import { getMonthExpenses } from "@/services/expenses";
 import { useCreateExpense, useDeleteExpense } from "@/hooks/useExpenses";
-
-const EXPENSE_CATEGORIES = [
-  { value: "mercado", label: "🛒 Mercado" },
-  { value: "embalagens", label: "📦 Embalagens" },
-  { value: "gas", label: "🔥 Gás" },
-  { value: "entregador", label: "🛵 Entregador" },
-  { value: "outros", label: "📋 Outros" },
-];
+import { EXPENSE_CATEGORIES, getExpenseCategoryLabel } from "@/lib/finance-categories";
 
 export default function SummaryTab({ selectedDate }: { selectedDate: string }) {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -190,7 +183,7 @@ export default function SummaryTab({ selectedDate }: { selectedDate: string }) {
                     <TableRow key={exp.id}>
                       <TableCell className="text-sm">{format(parseISO(exp.expense_date), "dd/MM")}</TableCell>
                       <TableCell className="font-medium">{exp.description}</TableCell>
-                      <TableCell className="text-sm capitalize">{EXPENSE_CATEGORIES.find((c) => c.value === exp.category)?.label ?? exp.category}</TableCell>
+                      <TableCell className="text-sm capitalize">{getExpenseCategoryLabel(exp.category)}</TableCell>
                       <TableCell className="text-right font-bold text-[var(--color-danger)]">R$ {exp.amount.toFixed(2)}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="icon" onClick={() => deleteExpense.mutate(exp.id)} className="h-8 w-8 text-[var(--color-text-secondary)] hover:text-[var(--color-danger)]">

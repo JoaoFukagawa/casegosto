@@ -16,6 +16,7 @@ import { useBills } from "@/hooks/useBills";
 import { useDeleteBill } from "@/hooks/useBills";
 import ChatTab from "@/components/assistente/ChatTab";
 import LancarContaTab from "@/components/assistente/LancarContaTab";
+import { BILL_CATEGORIES, EXPENSE_CATEGORIES } from "@/lib/finance-categories";
 
 type Bill = {
   id: string; nome: string; valor: number; categoria: string;
@@ -73,9 +74,6 @@ export default function AssistenteFinanceiro() {
     return acc;
   }, {});
 
-  const CATEGORIAS_CONTAS = ["Moradia", "Energia/Água", "Ingredientes", "Transporte", "Internet/Telefone", "Funcionários", "Impostos", "Outros"];
-  const CATEGORIAS_DESPESAS = [{ v: "mercado", l: "Mercado" }, { v: "embalagens", l: "Embalagens" }, { v: "gas", l: "Gás" }, { v: "entregador", l: "Entregador" }, { v: "outros", l: "Outros" }];
-
   const contexto = [
     `Data atual: ${format(today, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}`,
     ``,
@@ -116,10 +114,10 @@ export default function AssistenteFinanceiro() {
       : ["  Nenhuma"]),
     ``,
     `📌 CATEGORIAS VÁLIDAS PARA CONTAS`,
-    ...CATEGORIAS_CONTAS.map((c) => `  - ${c}`),
+    ...BILL_CATEGORIES.map((c) => `  - ${c}`),
     ``,
     `📌 CATEGORIAS VÁLIDAS PARA DESPESAS`,
-    ...CATEGORIAS_DESPESAS.map((c) => `  - ${c.l} (código: "${c.v}")`),
+    ...EXPENSE_CATEGORIES.map((c) => `  - ${c.label} (código: "${c.value}")`),
   ].join("\n");
 
   return (
