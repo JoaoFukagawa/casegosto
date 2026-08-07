@@ -480,7 +480,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_today_sold_quantities: {
+        Args: never
+        Returns: {
+          menu_item_id: string
+          sold_qty: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

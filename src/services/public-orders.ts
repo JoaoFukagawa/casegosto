@@ -1,22 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
+import { uuid } from "@/lib/uuid";
 
 const PUBLIC_ORDER_USER_ID = "f6dd0c90-a2e6-4df9-8a30-1f7bcddd4e3e";
 
 export async function getPublicMenuItems() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const startOfDay = today.toISOString();
-
-  const { data: sold } = await supabase
-    .from("order_items")
-    .select("menu_item_id, quantity, orders!inner(created_at, status)")
-    .gte("orders.created_at", startOfDay);
+  const { data: sold } = await supabase.rpc("get_today_sold_quantities");
 
   const soldMap: Record<string, number> = {};
   for (const item of sold || []) {
-    const order = item.orders as any;
-    if (order?.status === "cancelado") continue;
-    soldMap[item.menu_item_id] = (soldMap[item.menu_item_id] || 0) + item.quantity;
+    soldMap[item.menu_item_id] = (soldMap[item.menu_item_id] || 0) + Number(item.sold_qty);
   }
 
   const { data, error } = await supabase
@@ -38,21 +30,11 @@ export async function getPublicMenuItems() {
 }
 
 export async function checkStock(items: { menu_item_id: string; quantity: number }[]) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const startOfDay = today.toISOString();
-
-  const { data: sold } = await supabase
-    .from("order_items")
-    .select("menu_item_id, quantity, orders!inner(created_at, status)")
-    .gte("orders.created_at", startOfDay)
-    .in("menu_item_id", items.map((i) => i.menu_item_id));
+  const { data: sold } = await supabase.rpc("get_today_sold_quantities");
 
   const soldMap: Record<string, number> = {};
   for (const item of sold || []) {
-    const order = item.orders as any;
-    if (order?.status === "cancelado") continue;
-    soldMap[item.menu_item_id] = (soldMap[item.menu_item_id] || 0) + item.quantity;
+    soldMap[item.menu_item_id] = (soldMap[item.menu_item_id] || 0) + Number(item.sold_qty);
   }
 
   const { data: menuItems } = await supabase
@@ -94,7 +76,11 @@ export async function createPublicOrder(payload: {
     return sum + item.unit_price * item.quantity;
   }, 0) + fee;
 
-  const { data: order, error: orderError } = await supabase.from("orders").insert({
+  // Gera o ID no navegador em vez de pedir de volta ao banco (.select()) — o
+  // visitante do cardápio online não tem permissão de leitura, só de inserção.
+  const orderId = uuid();
+  const order = {
+    id: orderId,
     customer_name: payload.customer_name.trim(),
     customer_phone: payload.customer_phone?.trim() || null,
     delivery_type: payload.delivery_type,
@@ -106,12 +92,13 @@ export async function createPublicOrder(payload: {
     total,
     user_id: PUBLIC_ORDER_USER_ID,
     source: "online",
-  }).select().single();
+  };
 
+  const { error: orderError } = await supabase.from("orders").insert(order);
   if (orderError) throw new Error(orderError.message);
 
   const orderItems = payload.items.map((item) => ({
-    order_id: order.id,
+    order_id: orderId,
     menu_item_id: item.menu_item_id,
     quantity: item.quantity,
     unit_price: item.unit_price,
@@ -124,7 +111,7 @@ export async function createPublicOrder(payload: {
 
   const paymentLabel = { pix: "PIX", dinheiro: "Dinheiro", cartao: "Cartão" }[payload.payment_method] || payload.payment_method;
   const { error: payError } = await supabase.from("order_payments").insert({
-    order_id: order.id,
+    order_id: orderId,
     method_value: payload.payment_method,
     method_label: paymentLabel,
     amount: total,
