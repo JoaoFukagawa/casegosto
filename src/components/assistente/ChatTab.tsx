@@ -45,7 +45,7 @@ export default function ChatTab({
     if (messages.length === 0) {
       setMessages([{
         role: "assistant",
-        content: `Olá! Sou seu assistente financeiro da marmitaria 🍱.\n\nTenho acesso a todos os dados do sistema — receitas, despesas, contas a pagar/pagas, pedidos do dia e custos por categoria.\n\n**Pergunte o que quiser:** resumo do dia, contas pendentes, lucro, gastos por categoria, ou peça pra lançar ou pagar contas.`,
+        content: `Olá! Sou seu assistente financeiro da marmitaria.\n\nTenho acesso a todos os dados do sistema — receitas, despesas, contas a pagar/pagas, pedidos do dia e custos por categoria.\n\n**Pergunte o que quiser:** resumo do dia, contas pendentes, lucro, gastos por categoria, ou peça pra lançar ou pagar contas.`,
         time: now(),
       }]);
     }

@@ -22,7 +22,6 @@ export default function CategoriaSelect({ tipo, value, onChange }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [novoNome, setNovoNome] = useState("");
   const [novoGrupo, setNovoGrupo] = useState("");
-  const [novoEmoji, setNovoEmoji] = useState("");
 
   const grupos = groupCategories(categorias, tipo);
 
@@ -41,13 +40,12 @@ export default function CategoriaSelect({ tipo, value, onChange }: Props) {
   function handleCriar() {
     if (!novoNome.trim() || !novoGrupo.trim()) return;
     createCategoria.mutate(
-      { nome: novoNome.trim(), tipo, grupo: novoGrupo.trim(), emoji: novoEmoji.trim() || null },
+      { nome: novoNome.trim(), tipo, grupo: novoGrupo.trim() },
       {
         onSuccess: (nova) => {
           onChange(nova.nome);
           setNovoNome("");
           setNovoGrupo("");
-          setNovoEmoji("");
         },
       }
     );
@@ -87,10 +85,6 @@ export default function CategoriaSelect({ tipo, value, onChange }: Props) {
               <datalist id="grupos-existentes">
                 {Array.from(new Set(categorias.map((c) => c.grupo))).map((g) => <option key={g} value={g} />)}
               </datalist>
-            </div>
-            <div>
-              <Label>Emoji (opcional)</Label>
-              <Input value={novoEmoji} onChange={(e) => setNovoEmoji(e.target.value)} placeholder="🔧" className="w-20" />
             </div>
             <Button className="w-full" onClick={handleCriar} disabled={!novoNome.trim() || !novoGrupo.trim() || createCategoria.isPending}>
               {createCategoria.isPending ? "Criando..." : "Criar categoria"}

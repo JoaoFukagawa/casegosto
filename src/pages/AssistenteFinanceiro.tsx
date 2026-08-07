@@ -79,43 +79,43 @@ export default function AssistenteFinanceiro() {
   const contexto = [
     `Data atual: ${format(today, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}`,
     ``,
-    `💰 RECEITA E META`,
+    `RECEITA E META`,
     `Receita do mês: R$ ${receitaMes.toFixed(2)}`,
     `Meta mensal: R$ ${meta.toFixed(2)}`,
     `Progresso da meta: ${progressoPct}%`,
     `Meta semanal necessária: R$ ${metaSemana}`,
     ``,
-    `📋 CONTAS`,
+    `CONTAS`,
     `Total a pagar: R$ ${totalDividas.toFixed(2)} (${unpaidBills.length} pendentes)`,
     `Total pago no mês: R$ ${totalPago.toFixed(2)} (${paidBills.length} pagas)`,
     `Contas atrasadas: ${criticas}`,
     ``,
-    `📦 HOJE (${format(today, "dd/MM/yyyy")})`,
+    `HOJE (${format(today, "dd/MM/yyyy")})`,
     `Receita do dia: R$ ${dayRevenue.toFixed(2)}`,
     `Pedidos hoje: ${dayOrders.length} (${dayDelivered} entregues, ${dayPending} pendentes)`,
     `Despesas do dia: R$ ${dayCosts.toFixed(2)}`,
     `Lucro do dia (receita - despesas): R$ ${(dayRevenue - dayCosts).toFixed(2)}`,
     ``,
-    `📊 CUSTOS DO MÊS POR CATEGORIA`,
+    `CUSTOS DO MÊS POR CATEGORIA`,
     ...Object.entries(costsByCat).map(([cat, val]) => `  ${cat}: R$ ${Number(val).toFixed(2)}`),
     `  TOTAL: R$ ${monthCosts.toFixed(2)}`,
     ``,
-    `📋 CONTAS PENDENTES`,
+    `CONTAS PENDENTES`,
     ...(unpaidBills.length > 0
       ? unpaidBills.map((b: Bill) => `  ${b.nome}: R$ ${Number(b.valor).toFixed(2)} (${b.status}${b.meses_atrasada ? `, ${b.meses_atrasada}m atraso` : ""})${b.due_date ? ` - vencimento: ${b.due_date}` : ""}`)
       : ["  Nenhuma"]),
     ``,
-    `📋 CONTAS PAGAS (últimas 10)`,
+    `CONTAS PAGAS (últimas 10)`,
     ...(paidBills.length > 0
       ? paidBills.slice(-10).map((b: Bill) => `  ${b.nome}: R$ ${Number(b.valor).toFixed(2)}${b.paid_at ? ` (paga em ${format(new Date(b.paid_at), "dd/MM")})` : ""}`)
       : ["  Nenhuma"]),
     ``,
-    `📋 DESPESAS DO MÊS (últimas 10)`,
+    `DESPESAS DO MÊS (últimas 10)`,
     ...(monthExpenses.length > 0
       ? monthExpenses.slice(-10).map((e: any) => `  ${e.expense_date} - ${e.description}: R$ ${Number(e.amount).toFixed(2)} (${e.category})`)
       : ["  Nenhuma"]),
     ``,
-    `📌 PLANO DE CONTAS (categorias cadastradas)`,
+    `PLANO DE CONTAS (categorias cadastradas)`,
     ...categorias.filter((c) => c.ativo).map((c) => `  - ${categoriaLabel(c)} | grupo: ${c.grupo} | tipo: ${c.tipo} | código: "${c.slug}"`),
   ].join("\n");
 

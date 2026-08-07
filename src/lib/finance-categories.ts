@@ -15,8 +15,8 @@ export interface CategoriaFinanceira {
   ordem: number;
 }
 
-export function categoriaLabel(cat: Pick<CategoriaFinanceira, "nome" | "emoji">): string {
-  return cat.emoji ? `${cat.emoji} ${cat.nome}` : cat.nome;
+export function categoriaLabel(cat: Pick<CategoriaFinanceira, "nome">): string {
+  return cat.nome;
 }
 
 export function getExpenseCategoryLabel(categorias: CategoriaFinanceira[], slug: string): string {

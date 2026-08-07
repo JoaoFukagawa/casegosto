@@ -103,7 +103,7 @@ export default function BillsTab({ selectedDate }: { selectedDate: string }) {
         </CardHeader>
         <CardContent>
           {!filteredBills.length ? (
-            <p className="text-center text-[var(--color-text-secondary)] py-6">Nenhuma conta para este filtro 📭</p>
+            <p className="text-center text-[var(--color-text-secondary)] py-6">Nenhuma conta para este filtro</p>
           ) : (
             <div className="overflow-auto">
               <Table>

@@ -19,7 +19,7 @@ export default function PlanoContasTab({ selectedDate }: { selectedDate: string 
   const { data: categorias = [] } = useFinanceCategories();
   const toggleAtivo = useToggleFinanceCategoryAtivo();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [novo, setNovo] = useState({ nome: "", tipo: "despesa" as "receita" | "despesa", grupo: "", emoji: "", is_operacional: true });
+  const [novo, setNovo] = useState({ nome: "", tipo: "despesa" as "receita" | "despesa", grupo: "", is_operacional: true });
 
   const { data: monthExpenses } = useQuery({
     queryKey: queryKeys.expenses.byMonth(selectedDate),
@@ -37,7 +37,7 @@ export default function PlanoContasTab({ selectedDate }: { selectedDate: string 
 
   const createCategoria = useCreateFinanceCategory(() => {
     setDialogOpen(false);
-    setNovo({ nome: "", tipo: "despesa", grupo: "", emoji: "", is_operacional: true });
+    setNovo({ nome: "", tipo: "despesa", grupo: "", is_operacional: true });
   });
 
   const gruposReceita = groupCategories(categorias, "receita");
@@ -78,10 +78,6 @@ export default function PlanoContasTab({ selectedDate }: { selectedDate: string 
                     {Array.from(new Set(categorias.map((c) => c.grupo))).map((g) => <option key={g} value={g} />)}
                   </datalist>
                 </div>
-                <div>
-                  <Label>Emoji (opcional)</Label>
-                  <Input value={novo.emoji} onChange={(e) => setNovo({ ...novo, emoji: e.target.value })} placeholder="🔧" className="w-20" />
-                </div>
                 {novo.tipo === "despesa" && (
                   <div className="flex items-center justify-between rounded-lg border border-[var(--color-border)] p-3">
                     <div>
@@ -94,7 +90,7 @@ export default function PlanoContasTab({ selectedDate }: { selectedDate: string 
                 <Button
                   className="w-full"
                   disabled={!novo.nome.trim() || !novo.grupo.trim() || createCategoria.isPending}
-                  onClick={() => createCategoria.mutate({ nome: novo.nome.trim(), tipo: novo.tipo, grupo: novo.grupo.trim(), emoji: novo.emoji.trim() || null, is_operacional: novo.is_operacional })}
+                  onClick={() => createCategoria.mutate({ nome: novo.nome.trim(), tipo: novo.tipo, grupo: novo.grupo.trim(), is_operacional: novo.is_operacional })}
                 >
                   {createCategoria.isPending ? "Criando..." : "Criar categoria"}
                 </Button>

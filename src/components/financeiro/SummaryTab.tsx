@@ -99,7 +99,7 @@ export default function SummaryTab({ selectedDate }: { selectedDate: string }) {
               </div>
             </div>
           ) : (
-            <p className="text-center text-[var(--color-text-secondary)] py-4">Nenhuma entrega neste dia 🛵</p>
+            <p className="text-center text-[var(--color-text-secondary)] py-4">Nenhuma entrega neste dia</p>
           )}
         </CardContent>
       </Card>
@@ -165,7 +165,7 @@ export default function SummaryTab({ selectedDate }: { selectedDate: string }) {
         </CardHeader>
         <CardContent>
           {!monthExpenses?.length ? (
-            <p className="text-center text-[var(--color-text-secondary)] py-6">Nenhuma despesa registrada neste mês 💰</p>
+            <p className="text-center text-[var(--color-text-secondary)] py-6">Nenhuma despesa registrada neste mês</p>
           ) : (
             <div className="overflow-auto">
               <Table>

@@ -125,7 +125,7 @@ export default function Pagamentos({ embedded = false }: { embedded?: boolean })
                     <div className="min-w-0">
                       <CardTitle className="text-base font-heading truncate">{m.label}</CardTitle>
                       <p className="text-xs text-[var(--color-text-secondary)]">
-                        {m.is_cash ? "💵 Recebe troco · " : ""}
+                        {m.is_cash ? "Recebe troco · " : ""}
                         {m.active ? "Ativo" : "Inativo"}
                       </p>
                     </div>
