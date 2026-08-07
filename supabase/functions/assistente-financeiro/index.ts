@@ -1,6 +1,24 @@
 // Edge function: chat com IA para o assistente financeiro da marmitaria
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { BILL_CATEGORIES, mapBillCategoryToExpenseCategory } from "../_shared/finance-categories.ts";
+
+type CategoriaFinanceira = {
+  slug: string;
+  nome: string;
+  tipo: string;
+  grupo: string;
+  is_operacional: boolean;
+  ativo: boolean;
+};
+
+function findCategoriaByNome(categorias: CategoriaFinanceira[], nome: string): CategoriaFinanceira | null {
+  const alvo = (nome || "").trim().toLowerCase();
+  if (!alvo) return null;
+  return (
+    categorias.find((c) => c.nome.toLowerCase() === alvo) ??
+    categorias.find((c) => c.nome.toLowerCase().includes(alvo) || alvo.includes(c.nome.toLowerCase())) ??
+    null
+  );
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -60,7 +78,9 @@ function mesesAtrasados(dateStr: string): number {
   return Math.max(1, (today.getFullYear() - d.getFullYear()) * 12 + (today.getMonth() - d.getMonth()));
 }
 
-const TOOLS = [
+function buildTools(categorias: CategoriaFinanceira[]) {
+  const sugestoes = categorias.filter((c) => c.ativo).map((c) => c.nome).join(", ");
+  return [
   {
     type: "function",
     function: {
@@ -74,7 +94,7 @@ const TOOLS = [
           valor: { type: "number", description: "Valor em reais (apenas número, sem R$)." },
           categoria: {
             type: "string",
-            description: `Categoria da conta. Sugestões: ${BILL_CATEGORIES.join(", ")}.`,
+            description: `Categoria da conta, do plano de contas cadastrado. Opções: ${sugestoes}.`,
           },
           due_date: {
             type: "string",
@@ -100,7 +120,8 @@ const TOOLS = [
       },
     },
   },
-];
+  ];
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -128,13 +149,15 @@ Deno.serve(async (req) => {
     const ini = new Date(); ini.setDate(1); ini.setHours(0, 0, 0, 0);
     const fim = new Date(ini); fim.setMonth(fim.getMonth() + 1);
 
-    const [billsRes, menuRes, expensesRes, ordersRes] = await Promise.all([
+    const [billsRes, menuRes, expensesRes, ordersRes, categoriasRes] = await Promise.all([
       supabase.from("bills").select("id,nome,valor,categoria,status,meses_atrasada,due_date,paid_at").order("due_date", { ascending: true, nullsFirst: false }),
       supabase.from("menu_items").select("name,category,price,stock,unit_type,active").order("category"),
       supabase.from("expenses").select("description,category,amount,expense_date").gte("expense_date", ini.toISOString().slice(0, 10)).order("expense_date", { ascending: false }).limit(30),
       supabase.from("orders").select("total,status,created_at").gte("created_at", ini.toISOString()).lt("created_at", fim.toISOString()),
+      supabase.from("categorias_financeiras").select("slug,nome,tipo,grupo,is_operacional,ativo").eq("ativo", true).order("ordem"),
     ]);
 
+    const categorias: CategoriaFinanceira[] = categoriasRes.data ?? [];
     const allBills = billsRes.data ?? [];
     const pendingBills = allBills.filter((b: any) => b.status !== "paga");
     const paidBills = allBills.filter((b: any) => b.status === "paga").slice(0, 15);
@@ -168,13 +191,16 @@ ${formatStock(expenses)}
 === PEDIDOS DO MÊS ATUAL ===
 Quantidade: ${qtdPedidos} pedidos | Receita: ${fmtBRL(receitaMes)}
 
+=== PLANO DE CONTAS (categorias cadastradas) ===
+${categorias.map((c) => `- ${c.nome} | grupo: ${c.grupo} | ${c.is_operacional ? "operacional (vira despesa do mês automaticamente ao lançar/pagar)" : "administrativa (fica só como conta a pagar)"}`).join("\n")}
+
 ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
 
 === COMO RESPONDER ===
 - Seja direto, empático e em português brasileiro. Use valores em R$ formatados e dados REAIS acima.
 - FINANÇAS: priorize contas que causam corte (luz, água) ou despejo (aluguel). Quando o usuário disser quanto tem disponível, sugira exatamente quais contas pagar com nomes e valores reais.
 - CARDÁPIO: quando perguntarem sobre o que vender, sugira pratos populares de marmitaria brasileira (frango grelhado, picanha, feijoada, estrogonofe, parmegiana, bife acebolado, etc) sempre com proteína + carboidrato + salada. Dê sugestões por dia da semana. Considere o que já está no cardápio cadastrado e nos ingredientes/gastos recentes para evitar desperdício. Inclua dicas de preço (markup 2,5x a 3x).
-- LANÇAMENTO AUTOMÁTICO: quando o usuário disser que teve um gasto/conta nova (ex: "Tive uma conta de R$100", "comprei R$52 de couve", "gastei R$80 com ingredientes", "tirei R$50 de retirada", "coloquei R$30 na caixinha", "peguei R$20 de troco"), CHAME registrar_conta. Se não houver data, use hoje (${hoje}). Use categorias claras: "Ingredientes" (couve, carne, mercado, comida), "Embalagens" (marmitex, potes), "Gás", "Entregador" (motoboy, ifood), "Retirada/Pró-labore" (retirada do dono, pró-labore), "Diária" (diária de funcionário), "Caixinha" (caixinha/gorjeta), "Troco" (troco de caixa) — essas viram despesa do mês automaticamente. Para outras (aluguel, luz, impostos), continue como conta a pagar normal.
+- LANÇAMENTO AUTOMÁTICO: quando o usuário disser que teve um gasto/conta nova (ex: "Tive uma conta de R$100", "comprei R$52 de couve", "gastei R$80 com ingredientes", "tirei R$50 de retirada", "coloquei R$30 na caixinha", "peguei R$20 de troco"), CHAME registrar_conta usando a categoria mais próxima do PLANO DE CONTAS acima. Se não houver data, use hoje (${hoje}). Categorias "operacional" viram despesa do mês automaticamente; categorias administrativas (aluguel, impostos etc.) ficam só como conta a pagar. Se nada combinar, use "Outros".
 - BAIXA DE CONTA: quando o usuário disser que pagou/deu baixa em uma conta existente (ex: "Paguei o aluguel hoje", "Dei baixa na conta de luz", "A água foi paga"), procure na lista de CONTAS PENDENTES acima a conta correspondente (faça match pelo nome/categoria, ignorando maiúsculas/minúsculas) e CHAME dar_baixa_conta com o bill_id (UUID entre colchetes). Se nenhuma conta bater, avise que não encontrou. Se houver várias possíveis, pergunte qual antes de chamar. Após confirmar a baixa, responda algo como "Pronto! Marquei o [nome] como pago hoje, ${hojeBR}."`;
 
     const convo: any[] = [{ role: "system", content: systemContent }, ...messages];
@@ -186,7 +212,7 @@ ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
       const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({ model: "claude-sonnet-4-6", messages: convo, tools: TOOLS }),
+        body: JSON.stringify({ model: "claude-sonnet-4-6", messages: convo, tools: buildTools(categorias) }),
       });
 
       if (res.status === 429) return new Response(JSON.stringify({ error: "Muitas requisições. Aguarde e tente novamente." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -221,8 +247,8 @@ ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
           } else {
             const due_date = args.due_date || hoje;
             const cat = String(args.categoria ?? "Outros");
-            const expenseCat = mapBillCategoryToExpenseCategory(cat);
-            const isOperacional = expenseCat !== null;
+            const categoriaEncontrada = findCategoriaByNome(categorias, cat);
+            const isOperacional = categoriaEncontrada?.is_operacional ?? false;
             const valor = Number(args.valor ?? 0);
             const nome = String(args.nome ?? "Conta");
 
@@ -230,7 +256,7 @@ ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
               user_id: userId,
               nome,
               valor,
-              categoria: cat,
+              categoria: categoriaEncontrada?.nome ?? cat,
               status: isOperacional ? "paga" : statusFromDate(due_date),
               meses_atrasada: isOperacional ? 0 : mesesAtrasados(due_date),
               due_date,
@@ -241,11 +267,11 @@ ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
             if (insertRes.error) {
               result = { ok: false, error: insertRes.error.message };
             } else {
-              if (isOperacional) {
+              if (isOperacional && categoriaEncontrada) {
                 await supabase.from("expenses").insert({
                   user_id: userId,
                   description: nome,
-                  category: expenseCat!,
+                  category: categoriaEncontrada.slug,
                   amount: valor,
                   expense_date: hoje,
                 });
@@ -267,12 +293,14 @@ ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
             if (upd.error) {
               result = { ok: false, error: upd.error.message };
             } else {
-              if (userId) {
-                const expenseCat = mapBillCategoryToExpenseCategory(target.categoria) ?? "outros";
+              // Só lança em despesas quando a categoria é operacional — contas administrativas
+              // (aluguel, impostos...) ficam só como "conta paga", sem duplicar em despesas.
+              const categoriaEncontrada = findCategoriaByNome(categorias, target.categoria);
+              if (userId && categoriaEncontrada?.is_operacional) {
                 await supabase.from("expenses").insert({
                   user_id: userId,
                   description: target.nome,
-                  category: expenseCat,
+                  category: categoriaEncontrada.slug,
                   amount: Number(target.valor),
                   expense_date: hoje,
                 });

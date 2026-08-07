@@ -41,4 +41,7 @@ export const queryKeys = {
   assistente: {
     monthRevenue: ["assistente-receita-mes"],
   },
+  financeCategories: {
+    all: ["categorias_financeiras"],
+  },
 };

@@ -16,7 +16,8 @@ import { useBills } from "@/hooks/useBills";
 import { useDeleteBill } from "@/hooks/useBills";
 import ChatTab from "@/components/assistente/ChatTab";
 import LancarContaTab from "@/components/assistente/LancarContaTab";
-import { BILL_CATEGORIES, EXPENSE_CATEGORIES } from "@/lib/finance-categories";
+import { useFinanceCategories } from "@/hooks/useFinanceCategories";
+import { categoriaLabel } from "@/lib/finance-categories";
 
 type Bill = {
   id: string; nome: string; valor: number; categoria: string;
@@ -45,6 +46,7 @@ export default function AssistenteFinanceiro() {
   const { data: allBills = [] } = useBills();
   const { data: todayOrders } = useDashboardTodayOrders(startOfDay);
   const { data: monthExpenses = [] } = useMonthExpenses(selectedDate);
+  const { data: categorias = [] } = useFinanceCategories();
   const deleteBill = useDeleteBill();
 
   useEffect(() => { localStorage.setItem("meta_mensal", String(meta)); }, [meta]);
@@ -113,11 +115,8 @@ export default function AssistenteFinanceiro() {
       ? monthExpenses.slice(-10).map((e: any) => `  ${e.expense_date} - ${e.description}: R$ ${Number(e.amount).toFixed(2)} (${e.category})`)
       : ["  Nenhuma"]),
     ``,
-    `📌 CATEGORIAS VÁLIDAS PARA CONTAS`,
-    ...BILL_CATEGORIES.map((c) => `  - ${c}`),
-    ``,
-    `📌 CATEGORIAS VÁLIDAS PARA DESPESAS`,
-    ...EXPENSE_CATEGORIES.map((c) => `  - ${c.label} (código: "${c.value}")`),
+    `📌 PLANO DE CONTAS (categorias cadastradas)`,
+    ...categorias.filter((c) => c.ativo).map((c) => `  - ${categoriaLabel(c)} | grupo: ${c.grupo} | tipo: ${c.tipo} | código: "${c.slug}"`),
   ].join("\n");
 
   return (

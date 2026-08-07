@@ -56,6 +56,48 @@ export type Database = {
         }
         Relationships: []
       }
+      categorias_financeiras: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          emoji: string | null
+          grupo: string
+          id: string
+          is_operacional: boolean
+          nome: string
+          ordem: number
+          slug: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          emoji?: string | null
+          grupo: string
+          id?: string
+          is_operacional?: boolean
+          nome: string
+          ordem?: number
+          slug: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          emoji?: string | null
+          grupo?: string
+          id?: string
+          is_operacional?: boolean
+          nome?: string
+          ordem?: number
+          slug?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           bairro: string | null
@@ -277,6 +319,7 @@ export type Database = {
           id: string
           notes: string | null
           payment_method: string
+          source: string | null
           status: string
           total: number
           updated_at: string
@@ -293,6 +336,7 @@ export type Database = {
           id?: string
           notes?: string | null
           payment_method?: string
+          source?: string | null
           status?: string
           total?: number
           updated_at?: string
@@ -309,6 +353,7 @@ export type Database = {
           id?: string
           notes?: string | null
           payment_method?: string
+          source?: string | null
           status?: string
           total?: number
           updated_at?: string
@@ -402,6 +447,30 @@ export type Database = {
           display_name?: string | null
           id?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      store_settings: {
+        Row: {
+          id: string
+          schedule: Json
+          store_open_override: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          schedule?: Json
+          store_open_override?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          schedule?: Json
+          store_open_override?: boolean | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []

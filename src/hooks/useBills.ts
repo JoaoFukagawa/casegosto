@@ -5,7 +5,8 @@ import { createExpense } from "@/services/expenses";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { mapBillCategoryToExpenseCategory } from "@/lib/finance-categories";
+import { findCategoryByNome } from "@/lib/finance-categories";
+import { useFinanceCategories } from "@/hooks/useFinanceCategories";
 
 export function useBills() {
   return useQuery({
@@ -16,26 +17,37 @@ export function useBills() {
 
 export function useMarkBillPaid() {
   const qc = useQueryClient();
+  const { data: categorias = [] } = useFinanceCategories();
   return useMutation({
     mutationFn: async ({ id, bill }: { id: string; bill: any }) => {
       await markBillPaid(id, new Date().toISOString());
       if (bill) {
         const { data: u } = await supabase.auth.getUser();
         if (u.user) {
-          await createExpense({
-            description: bill.nome,
-            category: mapBillCategoryToExpenseCategory(bill.categoria) ?? "outros",
-            amount: Number(bill.valor),
-            expense_date: format(new Date(), "yyyy-MM-dd"),
-          });
+          const categoria = findCategoryByNome(categorias, bill.categoria);
+          // Só lança como despesa do mês quando a categoria é operacional (mercado, gás, retirada...).
+          // Contas administrativas (aluguel, impostos...) ficam só como conta paga, sem duplicar em despesas.
+          if (categoria?.is_operacional) {
+            await createExpense({
+              description: bill.nome,
+              category: categoria.slug,
+              amount: Number(bill.valor),
+              expense_date: format(new Date(), "yyyy-MM-dd"),
+            });
+          }
         }
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, { bill }) => {
       qc.invalidateQueries({ queryKey: queryKeys.bills.all });
       qc.invalidateQueries({ queryKey: queryKeys.bills.finance });
       qc.invalidateQueries({ queryKey: queryKeys.expenses.byMonth("") });
-      toast.success("Conta marcada como paga e lançada nas despesas ✓");
+      const categoria = findCategoryByNome(categorias, bill?.categoria ?? "");
+      toast.success(
+        categoria?.is_operacional
+          ? "Conta marcada como paga e lançada nas despesas ✓"
+          : "Conta marcada como paga ✓"
+      );
     },
     onError: () => toast.error("Erro ao dar baixa"),
   });

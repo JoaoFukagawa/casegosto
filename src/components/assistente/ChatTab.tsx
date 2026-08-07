@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { sendChatMessage } from "@/services/assistente";
 import { queryKeys } from "@/lib/query-keys";
+import { useFinanceCategories } from "@/hooks/useFinanceCategories";
+import { categoriaLabel } from "@/lib/finance-categories";
 
 type ChatMsg = { role: "user" | "assistant"; content: string; time: string };
 
@@ -29,6 +31,7 @@ export default function ChatTab({
   contexto: string;
 }) {
   const qc = useQueryClient();
+  const { data: categorias = [] } = useFinanceCategories();
   const [input, setInput] = useState("");
   const [recording, setRecording] = useState(false);
   const [contextSent, setContextSent] = useState(false);
@@ -60,11 +63,10 @@ export default function ChatTab({
       msgsToSend = [
         { role: "system", content: `Você é o assistente financeiro da marmitaria Casegosto. Use os dados abaixo para responder. Você pode lançar contas (usando categoria correta) e marcar contas como pagas.
 
-CATEGORIAS DE CONTAS (use exatamente esses nomes): Moradia, Energia/Água, Ingredientes, Transporte, Internet/Telefone, Funcionários, Impostos, Outros
+PLANO DE CONTAS ATUAL (use exatamente esses nomes de categoria ao lançar uma conta):
+${categorias.filter((c) => c.ativo).map((c) => `- ${categoriaLabel(c)} (grupo: ${c.grupo})`).join("\n")}
 
-Para despesas, use: mercado, embalagens, gas, entregador, outros
-
-Sempre classifique na categoria mais adequada. Ex: "conta de luz" → categoria "Energia/Água", "gás de cozinha" → despesa categoria "gas", "compra no mercado" → despesa categoria "mercado".
+Sempre classifique na categoria mais adequada dentre as cadastradas acima. Se realmente não houver nenhuma categoria que combine, use "Outros".
 
 ${contexto}` },
         { role: "user", content: msg },

@@ -1,68 +1,51 @@
-// Fonte única de categorias financeiras (despesas e contas).
-// Mantido em sincronia manual com supabase/functions/_shared/finance-categories.ts
-// (edge functions rodam em Deno e não importam de src/).
+// Plano de contas — as categorias vivem na tabela `categorias_financeiras`
+// (fonte única, usada pelo front-end e pela function assistente-financeiro).
+// Este arquivo só tem helpers puros que operam sobre a lista já carregada.
 
-export type ExpenseCategoryValue =
-  | "mercado"
-  | "embalagens"
-  | "gas"
-  | "entregador"
-  | "retirada"
-  | "diaria"
-  | "caixinha"
-  | "troco"
-  | "outros";
-
-export interface ExpenseCategory {
-  value: ExpenseCategoryValue;
-  label: string;
+export interface CategoriaFinanceira {
+  id: string;
+  slug: string;
+  nome: string;
+  // string solta (não união literal) porque o Supabase gera o tipo da coluna como `text`.
+  tipo: string;
+  grupo: string;
+  emoji: string | null;
+  is_operacional: boolean;
+  ativo: boolean;
+  ordem: number;
 }
 
-export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
-  { value: "mercado", label: "🛒 Mercado" },
-  { value: "embalagens", label: "📦 Embalagens" },
-  { value: "gas", label: "🔥 Gás" },
-  { value: "entregador", label: "🛵 Entregador" },
-  { value: "retirada", label: "💵 Retirada/Pró-labore" },
-  { value: "diaria", label: "🗓️ Diária" },
-  { value: "caixinha", label: "🐷 Caixinha" },
-  { value: "troco", label: "🔄 Troco" },
-  { value: "outros", label: "📋 Outros" },
-];
-
-export function getExpenseCategoryLabel(value: string): string {
-  return EXPENSE_CATEGORIES.find((c) => c.value === value)?.label ?? value;
+export function categoriaLabel(cat: Pick<CategoriaFinanceira, "nome" | "emoji">): string {
+  return cat.emoji ? `${cat.emoji} ${cat.nome}` : cat.nome;
 }
 
-// Categorias sugeridas para "bills" (contas a pagar) — texto livre, apenas sugestão de UI.
-export const BILL_CATEGORIES = [
-  "Moradia",
-  "Energia/Água",
-  "Ingredientes",
-  "Transporte",
-  "Internet/Telefone",
-  "Funcionários",
-  "Retirada/Pró-labore",
-  "Diária",
-  "Caixinha",
-  "Troco",
-  "Impostos",
-  "Outros",
-];
+export function getExpenseCategoryLabel(categorias: CategoriaFinanceira[], slug: string): string {
+  const cat = categorias.find((c) => c.slug === slug);
+  return cat ? categoriaLabel(cat) : slug;
+}
 
-// Mapeia a categoria livre de uma conta (bills.categoria) para uma categoria de
-// despesa operacional (expenses.category). Retorna null quando NÃO é uma despesa
-// operacional do dia (ex: aluguel, impostos) — nesse caso a conta continua como
-// "conta a pagar" com vencimento, em vez de virar despesa automaticamente.
-export function mapBillCategoryToExpenseCategory(cat: string): ExpenseCategoryValue | null {
-  const c = (cat || "").toLowerCase();
-  if (/(ingredient|mercado|merca|alimento|comida|hortifr|carne|frango|fruta|verdura|legume|couve)/.test(c)) return "mercado";
-  if (/(embalag|marmitex|pote|sacola|descart)/.test(c)) return "embalagens";
-  if (/(g[áa]s|botij)/.test(c)) return "gas";
-  if (/(entregad|motoboy|ifood|uber|delivery)/.test(c)) return "entregador";
-  if (/(retirada|pr[óo].?labore)/.test(c)) return "retirada";
-  if (/(di[áa]ria)/.test(c)) return "diaria";
-  if (/(caixinha|gorjeta)/.test(c)) return "caixinha";
-  if (/(troco)/.test(c)) return "troco";
-  return null;
+export function findCategoryBySlug(categorias: CategoriaFinanceira[], slug: string): CategoriaFinanceira | null {
+  return categorias.find((c) => c.slug === slug) ?? null;
+}
+
+// Contas (bills) guardam o nome de exibição da categoria em texto livre.
+// Faz o match (exato, depois por aproximação) contra o plano de contas atual.
+export function findCategoryByNome(categorias: CategoriaFinanceira[], nome: string): CategoriaFinanceira | null {
+  const alvo = (nome || "").trim().toLowerCase();
+  if (!alvo) return null;
+  return (
+    categorias.find((c) => c.nome.toLowerCase() === alvo) ??
+    categorias.find((c) => c.nome.toLowerCase().includes(alvo) || alvo.includes(c.nome.toLowerCase())) ??
+    null
+  );
+}
+
+export function groupCategories(categorias: CategoriaFinanceira[], tipo: "receita" | "despesa") {
+  const filtradas = categorias.filter((c) => c.tipo === tipo && c.ativo).sort((a, b) => a.ordem - b.ordem);
+  const grupos = new Map<string, CategoriaFinanceira[]>();
+  for (const cat of filtradas) {
+    if (!grupos.has(cat.grupo)) grupos.set(cat.grupo, []);
+    grupos.get(cat.grupo)!.push(cat);
+  }
+  return Array.from(grupos.entries()).map(([grupo, itens]) => ({ grupo, itens }));
 }

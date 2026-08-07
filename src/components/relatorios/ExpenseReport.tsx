@@ -11,9 +11,8 @@ import { ptBR } from "date-fns/locale";
 import { CalendarDays, Download, TrendingDown, FileBarChart } from "lucide-react";
 import StatsCard from "@/components/StatsCard";
 import { useExpenseReport } from "@/hooks/useExpenses";
-import { EXPENSE_CATEGORIES as BASE_EXPENSE_CATEGORIES, getExpenseCategoryLabel } from "@/lib/finance-categories";
-
-const EXPENSE_CATEGORIES = [{ value: "todos", label: "Todas as categorias" }, ...BASE_EXPENSE_CATEGORIES];
+import { useFinanceCategories } from "@/hooks/useFinanceCategories";
+import { getExpenseCategoryLabel, categoriaLabel } from "@/lib/finance-categories";
 
 export default function ExpenseReport() {
   const today = new Date();
@@ -22,6 +21,11 @@ export default function ExpenseReport() {
   const [category, setCategory] = useState("todos");
 
   const { data: expenses, isLoading } = useExpenseReport(startDate, endDate);
+  const { data: categoriasFinanceiras = [] } = useFinanceCategories();
+  const EXPENSE_CATEGORIES = [
+    { value: "todos", label: "Todas as categorias" },
+    ...categoriasFinanceiras.filter((c) => c.tipo === "despesa").map((c) => ({ value: c.slug, label: categoriaLabel(c) })),
+  ];
 
   const filtered = useMemo(() => {
     return (expenses || []).filter((e: any) => category === "todos" || e.category === category);
@@ -157,7 +161,7 @@ export default function ExpenseReport() {
                     <TableRow key={exp.id}>
                       <TableCell className="text-sm">{format(parseISO(exp.expense_date), "dd/MM/yyyy")}</TableCell>
                       <TableCell className="font-medium">{exp.description}</TableCell>
-                      <TableCell className="text-sm">{getExpenseCategoryLabel(exp.category)}</TableCell>
+                      <TableCell className="text-sm">{getExpenseCategoryLabel(categoriasFinanceiras, exp.category)}</TableCell>
                       <TableCell className="text-right font-bold text-[var(--color-danger)]">R$ {Number(exp.amount).toFixed(2)}</TableCell>
                     </TableRow>
                   ))}

@@ -5,12 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { createBill } from "@/services/bills";
 import { queryKeys } from "@/lib/query-keys";
-import { BILL_CATEGORIES as CATEGORIAS_SUGESTAO } from "@/lib/finance-categories";
+import CategoriaSelect from "@/components/financeiro/CategoriaSelect";
 
 function statusFromDate(dateStr: string) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -29,7 +28,7 @@ function mesesAtrasados(dateStr: string): number {
 
 export default function LancarContaTab({ onSuccess }: { onSuccess: () => void }) {
   const qc = useQueryClient();
-  const [form, setForm] = useState({ nome: "", valor: "", categoria: "Moradia", due_date: format(new Date(), "yyyy-MM-dd") });
+  const [form, setForm] = useState({ nome: "", valor: "", categoria: "", due_date: format(new Date(), "yyyy-MM-dd") });
 
   const addBill = useMutation({
     mutationFn: async () => {
@@ -46,7 +45,7 @@ export default function LancarContaTab({ onSuccess }: { onSuccess: () => void })
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.bills.all });
       qc.invalidateQueries({ queryKey: queryKeys.bills.finance });
-      setForm({ nome: "", valor: "", categoria: "Moradia", due_date: format(new Date(), "yyyy-MM-dd") });
+      setForm({ nome: "", valor: "", categoria: "", due_date: format(new Date(), "yyyy-MM-dd") });
       toast.success("Conta adicionada!");
       onSuccess();
     },
@@ -70,18 +69,13 @@ export default function LancarContaTab({ onSuccess }: { onSuccess: () => void })
           </div>
           <div>
             <Label>Categoria</Label>
-            <Select value={form.categoria} onValueChange={(v) => setForm({ ...form, categoria: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {CATEGORIAS_SUGESTAO.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}
-              </SelectContent>
-            </Select>
+            <CategoriaSelect tipo="despesa" value={form.categoria} onChange={(nome) => setForm({ ...form, categoria: nome })} />
           </div>
           <div>
             <Label>Data de vencimento</Label>
             <Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
           </div>
-          <Button onClick={() => addBill.mutate()} disabled={!form.nome || !form.valor || addBill.isPending} className="w-full">
+          <Button onClick={() => addBill.mutate()} disabled={!form.nome || !form.valor || !form.categoria || addBill.isPending} className="w-full">
             {addBill.isPending ? "Salvando..." : "Adicionar conta"}
           </Button>
         </CardContent>
