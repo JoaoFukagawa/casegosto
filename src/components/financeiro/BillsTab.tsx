@@ -5,19 +5,35 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { format, parseISO } from "date-fns";
-import { DollarSign, Check, Undo2, AlertTriangle, FileText } from "lucide-react";
+import { DollarSign, Check, Undo2, AlertTriangle, FileText, Plus, Trash2 } from "lucide-react";
 import StatsCard from "@/components/StatsCard";
 import { Badge } from "@/components/ui/badge";
 import { useBills, useMarkBillPaid, useUndoBillPaid } from "@/hooks/useBills";
+import { useCreateExpense, useDeleteExpense, useMonthExpenses } from "@/hooks/useExpenses";
+import { useFinanceCategories } from "@/hooks/useFinanceCategories";
+import { getExpenseCategoryLabel, findCategoryByNome } from "@/lib/finance-categories";
+import CategoriaSelect from "@/components/financeiro/CategoriaSelect";
 
 export default function BillsTab({ selectedDate }: { selectedDate: string }) {
   const [billStatusFilter, setBillStatusFilter] = useState<string>("todas");
   const [billDateFilter, setBillDateFilter] = useState<string>("");
+  const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
+  const { data: categorias = [] } = useFinanceCategories();
+  const [newExpense, setNewExpense] = useState({
+    description: "", category: "", amount: "", expense_date: format(new Date(), "yyyy-MM-dd"),
+  });
 
   const { data: allBills = [] } = useBills();
   const markBillPaid = useMarkBillPaid();
   const undoBillPaid = useUndoBillPaid();
+  const { data: monthExpenses } = useMonthExpenses(selectedDate);
+  const addExpense = useCreateExpense(() => {
+    setExpenseDialogOpen(false);
+    setNewExpense({ description: "", category: "", amount: "", expense_date: format(new Date(), "yyyy-MM-dd") });
+  });
+  const deleteExpense = useDeleteExpense();
 
   function billRealStatus(b: any): "paga" | "atrasada" | "vence-hoje" | "proxima" {
     if (b.status === "paga" || b.paid_at) return "paga";
@@ -148,6 +164,79 @@ export default function BillsTab({ selectedDate }: { selectedDate: string }) {
                       </TableRow>
                     );
                   })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="font-heading text-lg">Despesas do Mês</CardTitle>
+          <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Lançar despesa</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="font-heading">Nova Despesa</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>Descrição</Label>
+                  <Input value={newExpense.description} onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })} placeholder="Ex: Compra no mercado" />
+                </div>
+                <div>
+                  <Label>Categoria</Label>
+                  <CategoriaSelect tipo="despesa" value={newExpense.category} onChange={(nome) => setNewExpense({ ...newExpense, category: nome })} />
+                </div>
+                <div>
+                  <Label>Valor (R$)</Label>
+                  <Input type="number" step="0.01" value={newExpense.amount} onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })} placeholder="0.00" />
+                </div>
+                <div>
+                  <Label>Data</Label>
+                  <Input type="date" value={newExpense.expense_date} onChange={(e) => setNewExpense({ ...newExpense, expense_date: e.target.value })} />
+                </div>
+                <Button className="w-full" onClick={() => {
+                  const categoria = findCategoryByNome(categorias, newExpense.category);
+                  addExpense.mutate({ description: newExpense.description, category: categoria?.slug ?? "outros", amount: parseFloat(newExpense.amount), expense_date: newExpense.expense_date });
+                }}
+                  disabled={!newExpense.description || !newExpense.amount || !newExpense.category || addExpense.isPending}>Salvar Despesa</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent>
+          {!monthExpenses?.length ? (
+            <p className="text-center text-[var(--color-text-secondary)] py-6">Nenhuma despesa registrada neste mês</p>
+          ) : (
+            <div className="overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead className="w-10"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {monthExpenses.map((exp) => (
+                    <TableRow key={exp.id}>
+                      <TableCell className="text-sm">{format(parseISO(exp.expense_date), "dd/MM")}</TableCell>
+                      <TableCell className="font-medium">{exp.description}</TableCell>
+                      <TableCell className="text-sm capitalize">{getExpenseCategoryLabel(categorias, exp.category)}</TableCell>
+                      <TableCell className="text-right font-bold text-[var(--color-danger)]">R$ {exp.amount.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" onClick={() => deleteExpense.mutate(exp.id)} className="h-8 w-8 text-[var(--color-text-secondary)] hover:text-[var(--color-danger)]">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>

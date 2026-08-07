@@ -192,7 +192,8 @@ ${formatStock(expenses)}
 Quantidade: ${qtdPedidos} pedidos | Receita: ${fmtBRL(receitaMes)}
 
 === PLANO DE CONTAS (categorias cadastradas) ===
-${categorias.map((c) => `- ${c.nome} | grupo: ${c.grupo} | ${c.is_operacional ? "operacional (vira despesa do mês automaticamente ao lançar/pagar)" : "administrativa (fica só como conta a pagar)"}`).join("\n")}
+${categorias.map((c) => `- ${c.nome} | grupo: ${c.grupo} | ${c.is_operacional ? "operacional (já nasce paga ao lançar, ex: compra à vista)" : "administrativa (nasce como conta a pagar, com vencimento)"}`).join("\n")}
+Toda conta, ao ser marcada como paga (na hora do lançamento ou depois via baixa), entra automaticamente no Plano de Contas como despesa.
 
 ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
 
@@ -200,7 +201,7 @@ ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
 - Seja direto, empático e em português brasileiro. Use valores em R$ formatados e dados REAIS acima.
 - FINANÇAS: priorize contas que causam corte (luz, água) ou despejo (aluguel). Quando o usuário disser quanto tem disponível, sugira exatamente quais contas pagar com nomes e valores reais.
 - CARDÁPIO: quando perguntarem sobre o que vender, sugira pratos populares de marmitaria brasileira (frango grelhado, picanha, feijoada, estrogonofe, parmegiana, bife acebolado, etc) sempre com proteína + carboidrato + salada. Dê sugestões por dia da semana. Considere o que já está no cardápio cadastrado e nos ingredientes/gastos recentes para evitar desperdício. Inclua dicas de preço (markup 2,5x a 3x).
-- LANÇAMENTO AUTOMÁTICO: quando o usuário disser que teve um gasto/conta nova (ex: "Tive uma conta de R$100", "comprei R$52 de couve", "gastei R$80 com ingredientes", "tirei R$50 de retirada", "coloquei R$30 na caixinha", "peguei R$20 de troco"), CHAME registrar_conta usando a categoria mais próxima do PLANO DE CONTAS acima. Se não houver data, use hoje (${hoje}). Categorias "operacional" viram despesa do mês automaticamente; categorias administrativas (aluguel, impostos etc.) ficam só como conta a pagar. Se nada combinar, use "Outros".
+- LANÇAMENTO AUTOMÁTICO: quando o usuário disser que teve um gasto/conta nova (ex: "Tive uma conta de R$100", "comprei R$52 de couve", "gastei R$80 com ingredientes", "tirei R$50 de retirada", "coloquei R$30 na caixinha", "peguei R$20 de troco"), CHAME registrar_conta usando a categoria mais próxima do PLANO DE CONTAS acima. Se não houver data, use hoje (${hoje}). Categorias "operacional" já nascem pagas (compra à vista); categorias administrativas (aluguel, impostos etc.) nascem como conta a pagar com vencimento. Se nada combinar, use "Outros".
 - BAIXA DE CONTA: quando o usuário disser que pagou/deu baixa em uma conta existente (ex: "Paguei o aluguel hoje", "Dei baixa na conta de luz", "A água foi paga"), procure na lista de CONTAS PENDENTES acima a conta correspondente (faça match pelo nome/categoria, ignorando maiúsculas/minúsculas) e CHAME dar_baixa_conta com o bill_id (UUID entre colchetes). Se nenhuma conta bater, avise que não encontrou. Se houver várias possíveis, pergunte qual antes de chamar. Após confirmar a baixa, responda algo como "Pronto! Marquei o [nome] como pago hoje, ${hojeBR}."`;
 
     const convo: any[] = [{ role: "system", content: systemContent }, ...messages];
@@ -267,11 +268,12 @@ ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
             if (insertRes.error) {
               result = { ok: false, error: insertRes.error.message };
             } else {
-              if (isOperacional && categoriaEncontrada) {
+              // Toda conta que já nasce paga (categoria operacional) entra direto no Plano de Contas.
+              if (isOperacional) {
                 await supabase.from("expenses").insert({
                   user_id: userId,
                   description: nome,
-                  category: categoriaEncontrada.slug,
+                  category: categoriaEncontrada?.slug ?? "outros",
                   amount: valor,
                   expense_date: hoje,
                 });
@@ -293,14 +295,13 @@ ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}
             if (upd.error) {
               result = { ok: false, error: upd.error.message };
             } else {
-              // Só lança em despesas quando a categoria é operacional — contas administrativas
-              // (aluguel, impostos...) ficam só como "conta paga", sem duplicar em despesas.
+              // Toda conta paga entra no Plano de Contas: cria a despesa correspondente.
               const categoriaEncontrada = findCategoriaByNome(categorias, target.categoria);
-              if (userId && categoriaEncontrada?.is_operacional) {
+              if (userId) {
                 await supabase.from("expenses").insert({
                   user_id: userId,
                   description: target.nome,
-                  category: categoriaEncontrada.slug,
+                  category: categoriaEncontrada?.slug ?? "outros",
                   amount: Number(target.valor),
                   expense_date: hoje,
                 });

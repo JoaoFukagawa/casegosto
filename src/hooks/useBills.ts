@@ -24,30 +24,23 @@ export function useMarkBillPaid() {
       if (bill) {
         const { data: u } = await supabase.auth.getUser();
         if (u.user) {
+          // Toda conta paga entra no Plano de Contas: cria uma despesa na categoria
+          // correspondente (ou "outros" se a categoria não for encontrada).
           const categoria = findCategoryByNome(categorias, bill.categoria);
-          // Só lança como despesa do mês quando a categoria é operacional (mercado, gás, retirada...).
-          // Contas administrativas (aluguel, impostos...) ficam só como conta paga, sem duplicar em despesas.
-          if (categoria?.is_operacional) {
-            await createExpense({
-              description: bill.nome,
-              category: categoria.slug,
-              amount: Number(bill.valor),
-              expense_date: format(new Date(), "yyyy-MM-dd"),
-            });
-          }
+          await createExpense({
+            description: bill.nome,
+            category: categoria?.slug ?? "outros",
+            amount: Number(bill.valor),
+            expense_date: format(new Date(), "yyyy-MM-dd"),
+          });
         }
       }
     },
-    onSuccess: (_data, { bill }) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.bills.all });
       qc.invalidateQueries({ queryKey: queryKeys.bills.finance });
       qc.invalidateQueries({ queryKey: queryKeys.expenses.byMonth("") });
-      const categoria = findCategoryByNome(categorias, bill?.categoria ?? "");
-      toast.success(
-        categoria?.is_operacional
-          ? "Conta marcada como paga e lançada nas despesas ✓"
-          : "Conta marcada como paga ✓"
-      );
+      toast.success("Conta marcada como paga e lançada no Plano de Contas ✓");
     },
     onError: () => toast.error("Erro ao dar baixa"),
   });

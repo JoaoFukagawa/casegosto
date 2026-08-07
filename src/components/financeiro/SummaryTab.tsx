@@ -1,28 +1,16 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2, DollarSign, TrendingUp, TrendingDown, Truck } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, Truck } from "lucide-react";
 import { format, startOfDay, endOfDay, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import StatsCard from "@/components/StatsCard";
 import { queryKeys } from "@/lib/query-keys";
 import { getFinanceDayOrders, getFinanceMonthOrders } from "@/services/orders";
 import { getMonthExpenses } from "@/services/expenses";
-import { useCreateExpense, useDeleteExpense } from "@/hooks/useExpenses";
 import { useFinanceCategories } from "@/hooks/useFinanceCategories";
-import { getExpenseCategoryLabel, findCategoryByNome, categoriaLabel } from "@/lib/finance-categories";
-import CategoriaSelect from "@/components/financeiro/CategoriaSelect";
+import { categoriaLabel } from "@/lib/finance-categories";
 
 export default function SummaryTab({ selectedDate }: { selectedDate: string }) {
-  const [dialogOpen, setDialogOpen] = useState(false);
   const { data: categorias = [] } = useFinanceCategories();
-  const [newExpense, setNewExpense] = useState({
-    description: "", category: "", amount: "", expense_date: format(new Date(), "yyyy-MM-dd"),
-  });
 
   const dayStart = startOfDay(parseISO(selectedDate)).toISOString();
   const dayEnd = endOfDay(parseISO(selectedDate)).toISOString();
@@ -47,12 +35,6 @@ export default function SummaryTab({ selectedDate }: { selectedDate: string }) {
       return getMonthExpenses(ms, me);
     },
   });
-
-  const addExpense = useCreateExpense(() => {
-    setDialogOpen(false);
-    setNewExpense({ description: "", category: "", amount: "", expense_date: format(new Date(), "yyyy-MM-dd") });
-  });
-  const deleteExpense = useDeleteExpense();
 
   const monthRevenue = monthOrders?.filter((o) => o.status !== "cancelado").reduce((s, o) => s + o.total, 0) ?? 0;
   const dayRevenue = dayOrders?.filter((o) => o.status !== "cancelado").reduce((s, o) => s + o.total, 0) ?? 0;
@@ -125,79 +107,6 @@ export default function SummaryTab({ selectedDate }: { selectedDate: string }) {
           </CardContent>
         </Card>
       )}
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="font-heading text-lg">Despesas do Mês</CardTitle>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Adicionar</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle className="font-heading">Nova Despesa</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label>Descrição</Label>
-                  <Input value={newExpense.description} onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })} placeholder="Ex: Compra no mercado" />
-                </div>
-                <div>
-                  <Label>Categoria</Label>
-                  <CategoriaSelect tipo="despesa" value={newExpense.category} onChange={(nome) => setNewExpense({ ...newExpense, category: nome })} />
-                </div>
-                <div>
-                  <Label>Valor (R$)</Label>
-                  <Input type="number" step="0.01" value={newExpense.amount} onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })} placeholder="0.00" />
-                </div>
-                <div>
-                  <Label>Data</Label>
-                  <Input type="date" value={newExpense.expense_date} onChange={(e) => setNewExpense({ ...newExpense, expense_date: e.target.value })} />
-                </div>
-                <Button className="w-full" onClick={() => {
-                  const categoria = findCategoryByNome(categorias, newExpense.category);
-                  addExpense.mutate({ description: newExpense.description, category: categoria?.slug ?? "outros", amount: parseFloat(newExpense.amount), expense_date: newExpense.expense_date });
-                }}
-                  disabled={!newExpense.description || !newExpense.amount || !newExpense.category || addExpense.isPending}>Salvar Despesa</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </CardHeader>
-        <CardContent>
-          {!monthExpenses?.length ? (
-            <p className="text-center text-[var(--color-text-secondary)] py-6">Nenhuma despesa registrada neste mês</p>
-          ) : (
-            <div className="overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead className="w-10"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {monthExpenses.map((exp) => (
-                    <TableRow key={exp.id}>
-                      <TableCell className="text-sm">{format(parseISO(exp.expense_date), "dd/MM")}</TableCell>
-                      <TableCell className="font-medium">{exp.description}</TableCell>
-                      <TableCell className="text-sm capitalize">{getExpenseCategoryLabel(categorias, exp.category)}</TableCell>
-                      <TableCell className="text-right font-bold text-[var(--color-danger)]">R$ {exp.amount.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="icon" onClick={() => deleteExpense.mutate(exp.id)} className="h-8 w-8 text-[var(--color-text-secondary)] hover:text-[var(--color-danger)]">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
