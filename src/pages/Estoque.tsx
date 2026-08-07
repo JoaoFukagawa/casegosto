@@ -178,20 +178,22 @@ export default function Estoque() {
               <CardTitle className="font-heading text-lg capitalize">{category}</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Item</TableHead>
-                    <TableHead className="text-center">Estoque inicial</TableHead>
-                    <TableHead className="text-center">Pedido hoje</TableHead>
-                    <TableHead className="text-center">Entregue</TableHead>
-                    <TableHead className="text-center">Pendente</TableHead>
-                    <TableHead className="text-center">Saldo atual</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>{catItems.map(renderRow)}</TableBody>
-              </Table>
+              <div className="overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Item</TableHead>
+                      <TableHead className="text-center">Estoque inicial</TableHead>
+                      <TableHead className="text-center">Pedido hoje</TableHead>
+                      <TableHead className="text-center">Entregue</TableHead>
+                      <TableHead className="text-center">Pendente</TableHead>
+                      <TableHead className="text-center">Saldo atual</TableHead>
+                      <TableHead className="text-center">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>{catItems.map(renderRow)}</TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         ))
