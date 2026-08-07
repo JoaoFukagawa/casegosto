@@ -76,27 +76,39 @@ function MethodDialog({ method, trigger }: { method?: PaymentMethod; trigger: Re
   );
 }
 
-export default function Pagamentos() {
+export default function Pagamentos({ embedded = false }: { embedded?: boolean }) {
   const { data: methods, isLoading } = usePaymentMethods();
   const remove = useDeletePaymentMethod();
   const toggleActive = useTogglePaymentMethod();
   const move = useMovePaymentMethod(methods);
 
+  const novaFormaButton = (
+    <MethodDialog
+      trigger={
+        <Button>
+          <Plus className="h-4 w-4 mr-2" /> Nova forma
+        </Button>
+      }
+    />
+  );
+
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Formas de pagamento"
-        subtitle="Cadastre e organize as formas de pagamento aceitas"
-        actions={
-          <MethodDialog
-            trigger={
-              <Button>
-                <Plus className="h-4 w-4 mr-2" /> Nova forma
-              </Button>
-            }
-          />
-        }
-      />
+    <div className="space-y-6 mt-4">
+      {embedded ? (
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-heading text-lg font-semibold">Formas de pagamento</h2>
+            <p className="text-sm text-[var(--color-text-secondary)]">Cadastre e organize as formas de pagamento aceitas</p>
+          </div>
+          {novaFormaButton}
+        </div>
+      ) : (
+        <PageHeader
+          title="Formas de pagamento"
+          subtitle="Cadastre e organize as formas de pagamento aceitas"
+          actions={novaFormaButton}
+        />
+      )}
 
       {isLoading ? (
         <EmptyState message="Carregando..." />

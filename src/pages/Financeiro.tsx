@@ -5,6 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import { CalendarDays, Bot, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import SummaryTab from "@/components/financeiro/SummaryTab";
 import PlanoContasTab from "@/components/financeiro/PlanoContasTab";
 import BillsTab from "@/components/financeiro/BillsTab";
@@ -20,7 +21,7 @@ export default function Financeiro() {
   const [loading, setLoading] = useState(false);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       <PageHeader
         title="Financeiro"
         subtitle={`Controle de custos, receitas e lucro — ${format(parseISO(selectedDate), "MMMM 'de' yyyy", { locale: ptBR })}`}
@@ -41,12 +42,18 @@ export default function Financeiro() {
       />
 
       <div className={assistenteAberto ? "grid gap-6 lg:grid-cols-[1fr_380px] items-start" : ""}>
-        <div className="space-y-6 min-w-0">
-          <SummaryTab selectedDate={selectedDate} />
-          <PlanoContasTab selectedDate={selectedDate} />
-          <BillsTab selectedDate={selectedDate} />
-          <Pagamentos />
-        </div>
+        <Tabs defaultValue="resumo" className="min-w-0">
+          <TabsList>
+            <TabsTrigger value="resumo">Resumo</TabsTrigger>
+            <TabsTrigger value="plano-contas">Plano de Contas</TabsTrigger>
+            <TabsTrigger value="contas">Contas a Pagar</TabsTrigger>
+            <TabsTrigger value="pagamentos">Formas de Pagamento</TabsTrigger>
+          </TabsList>
+          <TabsContent value="resumo"><SummaryTab selectedDate={selectedDate} /></TabsContent>
+          <TabsContent value="plano-contas"><PlanoContasTab selectedDate={selectedDate} /></TabsContent>
+          <TabsContent value="contas"><BillsTab selectedDate={selectedDate} /></TabsContent>
+          <TabsContent value="pagamentos"><Pagamentos embedded /></TabsContent>
+        </Tabs>
 
         {assistenteAberto && (
           <div className="lg:sticky lg:top-4">
