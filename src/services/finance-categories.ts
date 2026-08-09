@@ -52,7 +52,7 @@ export async function createFinanceCategory(payload: {
   let ordem = 999;
   if (payload.codigo) {
     const m = payload.codigo.match(/^(\d+)\.(\d+)/);
-    if (m) ordem = parseInt(m[1], 10) * 100 + parseInt(m[2], 10);
+    if (m) ordem = parseInt(m[1], 10) * 100 + parseInt(m[2], 10) * 10;
   }
 
   const insert: Insert = {
