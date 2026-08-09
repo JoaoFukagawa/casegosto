@@ -2,6 +2,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 type CategoriaFinanceira = {
+  codigo: string | null;
   slug: string;
   nome: string;
   tipo: string;
@@ -154,7 +155,7 @@ Deno.serve(async (req) => {
       supabase.from("menu_items").select("name,category,price,stock,unit_type,active").order("category"),
       supabase.from("expenses").select("description,category,amount,expense_date").gte("expense_date", ini.toISOString().slice(0, 10)).order("expense_date", { ascending: false }).limit(30),
       supabase.from("orders").select("total,status,created_at").gte("created_at", ini.toISOString()).lt("created_at", fim.toISOString()),
-      supabase.from("categorias_financeiras").select("slug,nome,tipo,grupo,is_operacional,ativo").eq("ativo", true).order("ordem"),
+      supabase.from("categorias_financeiras").select("codigo,slug,nome,tipo,grupo,is_operacional,ativo").eq("ativo", true).order("ordem"),
     ]);
 
     const categorias: CategoriaFinanceira[] = categoriasRes.data ?? [];
@@ -192,7 +193,7 @@ ${formatStock(expenses)}
 Quantidade: ${qtdPedidos} pedidos | Receita: ${fmtBRL(receitaMes)}
 
 === PLANO DE CONTAS (categorias cadastradas) ===
-${categorias.map((c) => `- ${c.nome} | grupo: ${c.grupo} | ${c.is_operacional ? "operacional (já nasce paga ao lançar, ex: compra à vista)" : "administrativa (nasce como conta a pagar, com vencimento)"}`).join("\n")}
+${categorias.map((c) => `- ${c.codigo ? c.codigo + " " : ""}${c.nome} | grupo: ${c.grupo} | ${c.is_operacional ? "operacional (já nasce paga ao lançar, ex: compra à vista)" : "administrativa (nasce como conta a pagar, com vencimento)"}`).join("\n")}
 Toda conta, ao ser marcada como paga (na hora do lançamento ou depois via baixa), entra automaticamente no Plano de Contas como despesa.
 
 ${contexto ? `=== CONTEXTO ADICIONAL ===\n${contexto}\n` : ""}

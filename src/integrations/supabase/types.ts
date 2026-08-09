@@ -59,6 +59,7 @@ export type Database = {
       categorias_financeiras: {
         Row: {
           ativo: boolean
+          codigo: string | null
           created_at: string
           emoji: string | null
           grupo: string
@@ -72,6 +73,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          codigo?: string | null
           created_at?: string
           emoji?: string | null
           grupo: string
@@ -85,6 +87,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          codigo?: string | null
           created_at?: string
           emoji?: string | null
           grupo?: string

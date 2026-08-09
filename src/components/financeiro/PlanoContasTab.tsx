@@ -12,7 +12,7 @@ import { Plus, ListTree } from "lucide-react";
 import { queryKeys } from "@/lib/query-keys";
 import { getMonthExpenses } from "@/services/expenses";
 import { useFinanceCategories, useCreateFinanceCategory, useToggleFinanceCategoryAtivo } from "@/hooks/useFinanceCategories";
-import { categoriaLabel, groupCategories } from "@/lib/finance-categories";
+import { categoriaLabel, groupCategories, computeNextCodigo } from "@/lib/finance-categories";
 import { startOfMonth, endOfMonth, format, parseISO } from "date-fns";
 
 export default function PlanoContasTab({ selectedDate }: { selectedDate: string }) {
@@ -90,7 +90,10 @@ export default function PlanoContasTab({ selectedDate }: { selectedDate: string 
                 <Button
                   className="w-full"
                   disabled={!novo.nome.trim() || !novo.grupo.trim() || createCategoria.isPending}
-                  onClick={() => createCategoria.mutate({ nome: novo.nome.trim(), tipo: novo.tipo, grupo: novo.grupo.trim(), is_operacional: novo.is_operacional })}
+                  onClick={() => {
+                    const codigo = computeNextCodigo(categorias, novo.grupo.trim());
+                    createCategoria.mutate({ nome: novo.nome.trim(), tipo: novo.tipo, grupo: novo.grupo.trim(), codigo, is_operacional: novo.is_operacional });
+                  }}
                 >
                   {createCategoria.isPending ? "Criando..." : "Criar categoria"}
                 </Button>

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { useFinanceCategories, useCreateFinanceCategory } from "@/hooks/useFinanceCategories";
-import { categoriaLabel, groupCategories } from "@/lib/finance-categories";
+import { categoriaLabel, groupCategories, computeNextCodigo } from "@/lib/finance-categories";
 
 const NOVA_CATEGORIA = "__nova__";
 
@@ -39,8 +39,9 @@ export default function CategoriaSelect({ tipo, value, onChange }: Props) {
 
   function handleCriar() {
     if (!novoNome.trim() || !novoGrupo.trim()) return;
+    const codigo = computeNextCodigo(categorias, novoGrupo.trim());
     createCategoria.mutate(
-      { nome: novoNome.trim(), tipo, grupo: novoGrupo.trim() },
+      { nome: novoNome.trim(), tipo, grupo: novoGrupo.trim(), codigo },
       {
         onSuccess: (nova) => {
           onChange(nova.nome);

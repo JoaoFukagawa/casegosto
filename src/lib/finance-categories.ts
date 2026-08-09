@@ -4,6 +4,7 @@
 
 export interface CategoriaFinanceira {
   id: string;
+  codigo: string | null;
   slug: string;
   nome: string;
   // string solta (não união literal) porque o Supabase gera o tipo da coluna como `text`.
@@ -15,8 +16,8 @@ export interface CategoriaFinanceira {
   ordem: number;
 }
 
-export function categoriaLabel(cat: Pick<CategoriaFinanceira, "nome">): string {
-  return cat.nome;
+export function categoriaLabel(cat: Pick<CategoriaFinanceira, "nome" | "codigo">): string {
+  return cat.codigo ? `${cat.codigo} ${cat.nome}` : cat.nome;
 }
 
 export function getExpenseCategoryLabel(categorias: CategoriaFinanceira[], slug: string): string {
@@ -48,4 +49,31 @@ export function groupCategories(categorias: CategoriaFinanceira[], tipo: "receit
     grupos.get(cat.grupo)!.push(cat);
   }
   return Array.from(grupos.entries()).map(([grupo, itens]) => ({ grupo, itens }));
+}
+
+// Calcula o próximo código dentro de um grupo (ex: grupo "2. Custos Diretos"
+// com linhas 2.1/2.2/2.3 cadastradas -> devolve "2.4"). Se o grupo ainda não
+// existir, cria o próximo número de grupo disponível (ex: "6.1").
+export function computeNextCodigo(categorias: CategoriaFinanceira[], grupo: string): string {
+  const grupoTrim = grupo.trim();
+  const match = grupoTrim.match(/^(\d+)\./);
+
+  if (match) {
+    const grupoNum = match[1];
+    const irmãos = categorias.filter((c) => c.grupo.trim() === grupoTrim && c.codigo);
+    let maxSub = 0;
+    for (const c of irmãos) {
+      const m = c.codigo!.match(/^\d+\.(\d+)/);
+      if (m) maxSub = Math.max(maxSub, parseInt(m[1], 10));
+    }
+    return `${grupoNum}.${maxSub + 1}`;
+  }
+
+  // Grupo novo (digitado pelo usuário) — acha o próximo número de grupo livre.
+  let maxGrupo = 0;
+  for (const c of categorias) {
+    const m = c.grupo.trim().match(/^(\d+)\./);
+    if (m) maxGrupo = Math.max(maxGrupo, parseInt(m[1], 10));
+  }
+  return `${maxGrupo + 1}.1`;
 }

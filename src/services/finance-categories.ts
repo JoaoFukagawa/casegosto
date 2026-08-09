@@ -28,6 +28,7 @@ export async function createFinanceCategory(payload: {
   nome: string;
   tipo: "receita" | "despesa";
   grupo: string;
+  codigo?: string | null;
   emoji?: string | null;
   is_operacional?: boolean;
 }): Promise<Row> {
@@ -46,13 +47,23 @@ export async function createFinanceCategory(payload: {
     slug = `${slugBase}_${tentativa}`;
   }
 
+  // Deriva a ordem de exibição a partir do código (ex: "2.4" -> 240) para
+  // que a linha nova apareça no lugar certo dentro do grupo.
+  let ordem = 999;
+  if (payload.codigo) {
+    const m = payload.codigo.match(/^(\d+)\.(\d+)/);
+    if (m) ordem = parseInt(m[1], 10) * 100 + parseInt(m[2], 10);
+  }
+
   const insert: Insert = {
     slug,
+    codigo: payload.codigo || null,
     nome: payload.nome.trim(),
     tipo: payload.tipo,
     grupo: payload.grupo.trim() || "Outros",
     emoji: payload.emoji || null,
     is_operacional: payload.is_operacional ?? true,
+    ordem,
   };
   const { data, error } = await supabase.from("categorias_financeiras").insert(insert).select().single();
   if (error) throw error;
