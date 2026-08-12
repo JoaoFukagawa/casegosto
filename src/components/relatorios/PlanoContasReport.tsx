@@ -100,6 +100,28 @@ export default function PlanoContasReport() {
 
   type Lancamento = { id: string; data: string; descricao: string; contaLabel: string; valor: number; kind: "receita" | "despesa" };
 
+  // Vendas de marmita não têm uma linha por pedido no plano de contas — viram
+  // um lançamento agregado por dia (fechamento do caixa daquele dia), pra não
+  // inundar a lista com uma linha por pedido.
+  const vendasMarmitasPorDia = useMemo<Lancamento[]>(() => {
+    if (totalVendasMarmitas <= 0) return [];
+    const vendasCat = categorias.find((c) => c.slug === "vendas_marmitas");
+    const porDia = new Map<string, number>();
+    for (const o of orders || []) {
+      if (o.status === "cancelado") continue;
+      const dia = o.created_at.slice(0, 10);
+      porDia.set(dia, (porDia.get(dia) || 0) + Number(o.total));
+    }
+    return Array.from(porDia.entries()).map(([dia, valor]) => ({
+      id: `vendas-marmitas-${dia}`,
+      data: dia,
+      descricao: "Vendas de marmitas do dia",
+      contaLabel: vendasCat ? categoriaLabel(vendasCat) : "Vendas de marmitas",
+      valor,
+      kind: "receita" as const,
+    }));
+  }, [orders, totalVendasMarmitas, categorias]);
+
   const lancamentos = useMemo<Lancamento[]>(() => {
     const despesaRows: Lancamento[] = filteredExpenses.map((e) => {
       const cat = categorias.find((c) => c.slug === e.category);
@@ -109,8 +131,8 @@ export default function PlanoContasReport() {
       const cat = categorias.find((c) => c.slug === r.category);
       return { id: r.id, data: r.receita_date, descricao: r.description, contaLabel: cat ? categoriaLabel(cat) : r.category, valor: Number(r.amount), kind: "receita" };
     });
-    return [...receitaRows, ...despesaRows].sort((a, b) => (a.data > b.data ? -1 : 1));
-  }, [filteredExpenses, filteredReceitas, categorias]);
+    return [...vendasMarmitasPorDia, ...receitaRows, ...despesaRows].sort((a, b) => (a.data > b.data ? -1 : 1));
+  }, [filteredExpenses, filteredReceitas, vendasMarmitasPorDia, categorias]);
 
   const exportCSV = () => {
     const header = ["Data", "Tipo", "Descrição", "Conta", "Valor"];
