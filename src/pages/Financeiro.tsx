@@ -46,7 +46,7 @@ export default function Financeiro() {
           <TabsList>
             <TabsTrigger value="resumo">Resumo</TabsTrigger>
             <TabsTrigger value="plano-contas">Plano de Contas</TabsTrigger>
-            <TabsTrigger value="contas">Contas a Pagar</TabsTrigger>
+            <TabsTrigger value="contas">Contas a Pagar/Receitas</TabsTrigger>
             <TabsTrigger value="pagamentos">Formas de Pagamento</TabsTrigger>
           </TabsList>
           <TabsContent value="resumo"><SummaryTab selectedDate={selectedDate} /></TabsContent>
