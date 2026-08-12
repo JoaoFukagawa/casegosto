@@ -1,16 +1,28 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, TrendingUp, TrendingDown, Truck } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DollarSign, TrendingUp, TrendingDown, Truck, Plus, Trash2 } from "lucide-react";
 import { format, startOfDay, endOfDay, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import StatsCard from "@/components/StatsCard";
 import { queryKeys } from "@/lib/query-keys";
 import { getFinanceDayOrders, getFinanceMonthOrders } from "@/services/orders";
 import { getMonthExpenses } from "@/services/expenses";
 import { useFinanceCategories } from "@/hooks/useFinanceCategories";
-import { categoriaLabel } from "@/lib/finance-categories";
+import { useMonthReceitas, useCreateReceita, useDeleteReceita } from "@/hooks/useReceitas";
+import { categoriaLabel, findCategoryByNome, getExpenseCategoryLabel } from "@/lib/finance-categories";
+import CategoriaSelect from "@/components/financeiro/CategoriaSelect";
 
 export default function SummaryTab({ selectedDate }: { selectedDate: string }) {
   const { data: categorias = [] } = useFinanceCategories();
+  const [receitaDialogOpen, setReceitaDialogOpen] = useState(false);
+  const [newReceita, setNewReceita] = useState({
+    description: "", category: "", amount: "", receita_date: format(new Date(), "yyyy-MM-dd"),
+  });
 
   const dayStart = startOfDay(parseISO(selectedDate)).toISOString();
   const dayEnd = endOfDay(parseISO(selectedDate)).toISOString();
@@ -36,8 +48,19 @@ export default function SummaryTab({ selectedDate }: { selectedDate: string }) {
     },
   });
 
-  const monthRevenue = monthOrders?.filter((o) => o.status !== "cancelado").reduce((s, o) => s + o.total, 0) ?? 0;
-  const dayRevenue = dayOrders?.filter((o) => o.status !== "cancelado").reduce((s, o) => s + o.total, 0) ?? 0;
+  const { data: monthReceitas } = useMonthReceitas(selectedDate);
+  const addReceita = useCreateReceita(() => {
+    setReceitaDialogOpen(false);
+    setNewReceita({ description: "", category: "", amount: "", receita_date: format(new Date(), "yyyy-MM-dd") });
+  });
+  const deleteReceita = useDeleteReceita();
+
+  const monthVendasMarmitas = monthOrders?.filter((o) => o.status !== "cancelado").reduce((s, o) => s + o.total, 0) ?? 0;
+  const dayVendasMarmitas = dayOrders?.filter((o) => o.status !== "cancelado").reduce((s, o) => s + o.total, 0) ?? 0;
+  const monthOutrasReceitas = monthReceitas?.reduce((s, r) => s + r.amount, 0) ?? 0;
+  const dayOutrasReceitas = monthReceitas?.filter((r) => r.receita_date === selectedDate).reduce((s, r) => s + r.amount, 0) ?? 0;
+  const monthRevenue = monthVendasMarmitas + monthOutrasReceitas;
+  const dayRevenue = dayVendasMarmitas + dayOutrasReceitas;
   const monthCosts = monthExpenses?.reduce((s, e) => s + e.amount, 0) ?? 0;
   const monthProfit = monthRevenue - monthCosts;
 
@@ -82,6 +105,79 @@ export default function SummaryTab({ selectedDate }: { selectedDate: string }) {
             </div>
           ) : (
             <p className="text-center text-[var(--color-text-secondary)] py-4">Nenhuma entrega neste dia</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="font-heading text-lg">Receitas Particulares do Mês</CardTitle>
+          <Dialog open={receitaDialogOpen} onOpenChange={setReceitaDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Lançar receita</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="font-heading">Nova Receita</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>Descrição</Label>
+                  <Input value={newReceita.description} onChange={(e) => setNewReceita({ ...newReceita, description: e.target.value })} placeholder="Ex: Venda avulsa, aluguel recebido" />
+                </div>
+                <div>
+                  <Label>Categoria</Label>
+                  <CategoriaSelect tipo="receita" value={newReceita.category} onChange={(nome) => setNewReceita({ ...newReceita, category: nome })} />
+                </div>
+                <div>
+                  <Label>Valor (R$)</Label>
+                  <Input type="number" step="0.01" value={newReceita.amount} onChange={(e) => setNewReceita({ ...newReceita, amount: e.target.value })} placeholder="0.00" />
+                </div>
+                <div>
+                  <Label>Data</Label>
+                  <Input type="date" value={newReceita.receita_date} onChange={(e) => setNewReceita({ ...newReceita, receita_date: e.target.value })} />
+                </div>
+                <Button className="w-full" onClick={() => {
+                  const categoria = findCategoryByNome(categorias, newReceita.category);
+                  addReceita.mutate({ description: newReceita.description, category: categoria?.slug ?? "outras_receitas", amount: parseFloat(newReceita.amount), receita_date: newReceita.receita_date });
+                }}
+                  disabled={!newReceita.description || !newReceita.amount || !newReceita.category || addReceita.isPending}>Salvar Receita</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent>
+          {!monthReceitas?.length ? (
+            <p className="text-center text-[var(--color-text-secondary)] py-6">Nenhuma receita particular registrada neste mês</p>
+          ) : (
+            <div className="overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead className="w-10"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {monthReceitas.map((rec) => (
+                    <TableRow key={rec.id}>
+                      <TableCell className="text-sm">{format(parseISO(rec.receita_date), "dd/MM")}</TableCell>
+                      <TableCell className="font-medium">{rec.description}</TableCell>
+                      <TableCell className="text-sm capitalize">{getExpenseCategoryLabel(categorias, rec.category)}</TableCell>
+                      <TableCell className="text-right font-bold text-[var(--color-success)]">R$ {rec.amount.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" onClick={() => deleteReceita.mutate(rec.id)} className="h-8 w-8 text-[var(--color-text-secondary)] hover:text-[var(--color-danger)]">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

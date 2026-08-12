@@ -11,7 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, ListTree } from "lucide-react";
 import { queryKeys } from "@/lib/query-keys";
 import { getMonthExpenses } from "@/services/expenses";
+import { getFinanceMonthOrders } from "@/services/orders";
 import { useFinanceCategories, useCreateFinanceCategory, useToggleFinanceCategoryAtivo } from "@/hooks/useFinanceCategories";
+import { useMonthReceitas } from "@/hooks/useReceitas";
 import { categoriaLabel, groupCategories, computeNextCodigo } from "@/lib/finance-categories";
 import { startOfMonth, endOfMonth, format, parseISO } from "date-fns";
 
@@ -34,6 +36,23 @@ export default function PlanoContasTab({ selectedDate }: { selectedDate: string 
     acc[e.category] = (acc[e.category] || 0) + e.amount;
     return acc;
   }, {} as Record<string, number>);
+
+  const { data: monthOrders } = useQuery({
+    queryKey: queryKeys.orders.financeByMonth(selectedDate),
+    queryFn: () => {
+      const ms = startOfMonth(parseISO(selectedDate)).toISOString();
+      const me = endOfMonth(parseISO(selectedDate)).toISOString();
+      return getFinanceMonthOrders(ms, me);
+    },
+  });
+  const { data: monthReceitas } = useMonthReceitas(selectedDate);
+
+  const totalReceitaPorSlug = (monthReceitas ?? []).reduce((acc, r) => {
+    acc[r.category] = (acc[r.category] || 0) + r.amount;
+    return acc;
+  }, {} as Record<string, number>);
+  totalReceitaPorSlug["vendas_marmitas"] =
+    (monthOrders ?? []).filter((o) => o.status !== "cancelado").reduce((s, o) => s + o.total, 0);
 
   const createCategoria = useCreateFinanceCategory(() => {
     setDialogOpen(false);
@@ -139,7 +158,12 @@ export default function PlanoContasTab({ selectedDate }: { selectedDate: string 
                     {itens.map((cat) => (
                       <div key={cat.id} className="flex items-center justify-between rounded-lg border border-[var(--color-border)] p-2.5">
                         <span className="text-sm font-medium">{categoriaLabel(cat)}</span>
-                        <Switch checked={cat.ativo} onCheckedChange={(v) => toggleAtivo.mutate({ id: cat.id, ativo: v })} />
+                        <div className="flex items-center gap-3 shrink-0">
+                          {totalReceitaPorSlug[cat.slug] > 0 && (
+                            <span className="text-sm font-bold text-[var(--color-success)]">R$ {totalReceitaPorSlug[cat.slug].toFixed(2)}</span>
+                          )}
+                          <Switch checked={cat.ativo} onCheckedChange={(v) => toggleAtivo.mutate({ id: cat.id, ativo: v })} />
+                        </div>
                       </div>
                     ))}
                   </div>

@@ -23,6 +23,9 @@ export const queryKeys = {
     byMonth: (date: string) => ["financeiro-expenses-month", date],
     report: (start: string, end: string) => ["relatorios-expenses", start, end],
   },
+  receitas: {
+    byMonth: (date: string) => ["financeiro-receitas-month", date],
+  },
   paymentMethods: {
     all: ["payment_methods"],
     active: ["payment_methods_active"],
