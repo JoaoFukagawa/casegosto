@@ -12,6 +12,7 @@ import { ptBR } from "date-fns/locale";
 import { CalendarDays, Download, DollarSign, TrendingUp, TrendingDown, FileBarChart } from "lucide-react";
 import StatsCard from "@/components/StatsCard";
 import { getReportExpenses } from "@/services/expenses";
+import { getReportReceitas } from "@/services/receitas";
 import { getReportsOrderData } from "@/services/orders";
 import { useFinanceCategories } from "@/hooks/useFinanceCategories";
 import { categoriaLabel, type CategoriaFinanceira } from "@/lib/finance-categories";
@@ -33,6 +34,10 @@ export default function PlanoContasReport() {
   const { data: orders, isLoading: loadingOrders } = useQuery({
     queryKey: ["relatorios-plano-contas-orders", startDate, endDate],
     queryFn: () => getReportsOrderData(startDate, endDate),
+  });
+  const { data: receitas, isLoading: loadingReceitas } = useQuery({
+    queryKey: ["relatorios-plano-contas-receitas", startDate, endDate],
+    queryFn: () => getReportReceitas(startDate, endDate),
   });
 
   const contasDisponiveis = useMemo(() => {
@@ -64,32 +69,58 @@ export default function PlanoContasReport() {
 
   const totalDespesas = filteredExpenses.reduce((s, e) => s + Number(e.amount), 0);
 
-  const totalReceitas = useMemo(() => {
+  // Vendas de marmita não são uma linha em `receitas` — vêm direto de `orders`,
+  // atribuídas automaticamente à conta "vendas_marmitas".
+  const totalVendasMarmitas = useMemo(() => {
     if (tipo === "despesa") return 0;
-    // Só existe uma conta de receita (1.1 Vendas de marmitas) — se ela estiver
-    // desmarcada no filtro de contas, a receita fica zerada.
     const vendasCat = categorias.find((c) => c.slug === "vendas_marmitas");
     if (vendasCat && !contaAtiva(vendasCat)) return 0;
     return (orders || []).filter((o) => o.status !== "cancelado").reduce((s, o) => s + Number(o.total), 0);
   }, [orders, tipo, categorias, contasSelecionadas]);
 
+  const filteredReceitas = useMemo(() => {
+    if (tipo === "despesa") return [];
+    return (receitas || []).filter((r) => {
+      const cat = categorias.find((c) => c.slug === r.category);
+      if (!cat) return contasSelecionadas === null;
+      return contaAtiva(cat);
+    });
+  }, [receitas, categorias, tipo, contasSelecionadas]);
+
+  const totalReceitasParticulares = filteredReceitas.reduce((s, r) => s + Number(r.amount), 0);
+  const totalReceitas = totalVendasMarmitas + totalReceitasParticulares;
+
   const porConta = useMemo(() => {
     const map = new Map<string, number>();
     for (const e of filteredExpenses) map.set(e.category, (map.get(e.category) || 0) + Number(e.amount));
+    for (const r of filteredReceitas) map.set(r.category, (map.get(r.category) || 0) + Number(r.amount));
+    if (totalVendasMarmitas > 0) map.set("vendas_marmitas", (map.get("vendas_marmitas") || 0) + totalVendasMarmitas);
     return map;
-  }, [filteredExpenses]);
+  }, [filteredExpenses, filteredReceitas, totalVendasMarmitas]);
+
+  type Lancamento = { id: string; data: string; descricao: string; contaLabel: string; valor: number; kind: "receita" | "despesa" };
+
+  const lancamentos = useMemo<Lancamento[]>(() => {
+    const despesaRows: Lancamento[] = filteredExpenses.map((e) => {
+      const cat = categorias.find((c) => c.slug === e.category);
+      return { id: e.id, data: e.expense_date, descricao: e.description, contaLabel: cat ? categoriaLabel(cat) : e.category, valor: Number(e.amount), kind: "despesa" };
+    });
+    const receitaRows: Lancamento[] = filteredReceitas.map((r) => {
+      const cat = categorias.find((c) => c.slug === r.category);
+      return { id: r.id, data: r.receita_date, descricao: r.description, contaLabel: cat ? categoriaLabel(cat) : r.category, valor: Number(r.amount), kind: "receita" };
+    });
+    return [...receitaRows, ...despesaRows].sort((a, b) => (a.data > b.data ? -1 : 1));
+  }, [filteredExpenses, filteredReceitas, categorias]);
 
   const exportCSV = () => {
-    const header = ["Data", "Descrição", "Conta", "Valor"];
-    const rows = filteredExpenses.map((e) => {
-      const cat = categorias.find((c) => c.slug === e.category);
-      return [
-        format(parseISO(e.expense_date), "dd/MM/yyyy"),
-        `"${e.description.replace(/"/g, '""')}"`,
-        cat ? categoriaLabel(cat) : e.category,
-        Number(e.amount).toFixed(2).replace(".", ","),
-      ];
-    });
+    const header = ["Data", "Tipo", "Descrição", "Conta", "Valor"];
+    const rows = lancamentos.map((l) => [
+      format(parseISO(l.data), "dd/MM/yyyy"),
+      l.kind === "receita" ? "Receita" : "Despesa",
+      `"${l.descricao.replace(/"/g, '""')}"`,
+      l.contaLabel,
+      l.valor.toFixed(2).replace(".", ","),
+    ]);
     const csv = [header, ...rows].map((r) => r.join(";")).join("\n");
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -107,7 +138,7 @@ export default function PlanoContasReport() {
     else { setStartDate(format(new Date(now.getFullYear(), 0, 1), "yyyy-MM-dd")); setEndDate(format(new Date(now.getFullYear(), 11, 31), "yyyy-MM-dd")); }
   };
 
-  const isLoading = loadingExpenses || loadingOrders;
+  const isLoading = loadingExpenses || loadingOrders || loadingReceitas;
   const gruposDisponiveis = useMemo(() => {
     const map = new Map<string, CategoriaFinanceira[]>();
     for (const c of contasDisponiveis) {
@@ -150,7 +181,7 @@ export default function PlanoContasReport() {
           <Button variant="outline" size="sm" onClick={() => setQuickRange("mes")}>Mês</Button>
           <Button variant="outline" size="sm" onClick={() => setQuickRange("ano")}>Ano</Button>
         </div>
-        <Button onClick={exportCSV} disabled={!filteredExpenses.length} size="sm" className="ml-auto">
+        <Button onClick={exportCSV} disabled={!lancamentos.length} size="sm" className="ml-auto">
           <Download className="h-4 w-4 mr-2" /> Exportar CSV
         </Button>
       </div>
@@ -197,7 +228,8 @@ export default function PlanoContasReport() {
             <div className="space-y-3">
               {contasDisponiveis.filter((c) => porConta.has(c.slug)).map((c) => {
                 const val = porConta.get(c.slug) ?? 0;
-                const pct = totalDespesas > 0 ? (val / totalDespesas) * 100 : 0;
+                const base = c.tipo === "receita" ? totalReceitas : totalDespesas;
+                const pct = base > 0 ? (val / base) * 100 : 0;
                 return (
                   <div key={c.slug}>
                     <div className="flex items-center justify-between text-sm mb-1">
@@ -226,7 +258,7 @@ export default function PlanoContasReport() {
         <CardContent>
           {isLoading ? (
             <p className="text-center text-[var(--color-text-secondary)] py-6">Carregando...</p>
-          ) : !filteredExpenses.length ? (
+          ) : !lancamentos.length ? (
             <p className="text-center text-[var(--color-text-secondary)] py-6">Nenhum lançamento encontrado com esses filtros</p>
           ) : (
             <div className="overflow-auto">
@@ -240,17 +272,16 @@ export default function PlanoContasReport() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredExpenses.map((e) => {
-                    const cat = categorias.find((c) => c.slug === e.category);
-                    return (
-                      <TableRow key={e.id}>
-                        <TableCell className="text-sm">{format(parseISO(e.expense_date), "dd/MM/yyyy")}</TableCell>
-                        <TableCell className="font-medium">{e.description}</TableCell>
-                        <TableCell className="text-sm">{cat ? categoriaLabel(cat) : e.category}</TableCell>
-                        <TableCell className="text-right font-bold text-[var(--color-danger)]">R$ {Number(e.amount).toFixed(2)}</TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {lancamentos.map((l) => (
+                    <TableRow key={`${l.kind}-${l.id}`}>
+                      <TableCell className="text-sm">{format(parseISO(l.data), "dd/MM/yyyy")}</TableCell>
+                      <TableCell className="font-medium">{l.descricao}</TableCell>
+                      <TableCell className="text-sm">{l.contaLabel}</TableCell>
+                      <TableCell className={`text-right font-bold ${l.kind === "receita" ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}`}>
+                        {l.kind === "receita" ? "+" : "-"} R$ {l.valor.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>

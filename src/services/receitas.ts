@@ -11,6 +11,17 @@ export async function getMonthReceitas(monthStart: string, monthEnd: string) {
   return data;
 }
 
+export async function getReportReceitas(startDate: string, endDate: string) {
+  const { data, error } = await supabase
+    .from("receitas")
+    .select("*")
+    .gte("receita_date", startDate)
+    .lte("receita_date", endDate)
+    .order("receita_date", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
 export async function createReceita(payload: {
   description: string;
   category: string;
