@@ -4,7 +4,21 @@ import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-const Dialog = DialogPrimitive.Root;
+const Dialog = ({
+  open,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Root>) => {
+  // Radix can leave `pointer-events: none` stuck on <body> when a Dialog containing
+  // a Select/Popover is closed programmatically (e.g. right after a mutation succeeds),
+  // freezing the whole page until reload. Clear it whenever this dialog closes.
+  React.useEffect(() => {
+    if (open === false) {
+      document.body.style.pointerEvents = "";
+    }
+  }, [open]);
+
+  return <DialogPrimitive.Root open={open} {...props} />;
+};
 
 const DialogTrigger = DialogPrimitive.Trigger;
 
