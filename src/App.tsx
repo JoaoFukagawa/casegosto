@@ -18,6 +18,7 @@ const Estoque = lazy(() => import("@/pages/Estoque"));
 const AssistenteFinanceiro = lazy(() => import("@/pages/AssistenteFinanceiro"));
 const Clientes = lazy(() => import("@/pages/Clientes"));
 const PratoDoDia = lazy(() => import("@/pages/PratoDoDia"));
+const Configuracoes = lazy(() => import("@/pages/Configuracoes"));
 const Auth = lazy(() => import("@/pages/Auth"));
 const CardapioOnline = lazy(() => import("@/pages/CardapioOnline"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
@@ -66,6 +67,7 @@ const App = () => (
               <Route path="/assistente" element={<ProtectedRoute><AppLayout><AssistenteFinanceiro /></AppLayout></ProtectedRoute>} />
               <Route path="/clientes" element={<ProtectedRoute><AppLayout><Clientes /></AppLayout></ProtectedRoute>} />
               <Route path="/prato-do-dia" element={<ProtectedRoute><AppLayout><PratoDoDia /></AppLayout></ProtectedRoute>} />
+              <Route path="/configuracoes" element={<ProtectedRoute><AppLayout><Configuracoes /></AppLayout></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

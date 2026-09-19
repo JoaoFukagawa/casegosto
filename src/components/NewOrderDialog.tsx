@@ -62,11 +62,13 @@ export default function NewOrderDialog() {
     const phoneDigits = phone.replace(/\D/g, "");
     const match = clientes.find(
       (c: any) =>
-        normalized(c.nome) === nameNorm ||
+        (nameNorm.length > 0 && normalized(c.nome) === nameNorm) ||
         (phoneDigits.length >= 8 && c.telefone?.replace(/\D/g, "").endsWith(phoneDigits.slice(-8)))
     );
     if (match) {
       setMatchedClienteId(match.id);
+      if (match.nome && !name.trim()) setCustomerName(match.nome);
+      if (match.telefone && !phone.trim()) setCustomerPhone(match.telefone);
       if (match.rua) setDeliveryAddress([match.rua, match.numero, match.bairro, match.complemento].filter(Boolean).join(", "));
     } else setMatchedClienteId(null);
   };
@@ -228,13 +230,20 @@ export default function NewOrderDialog() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="name">Nome do cliente *</Label>
-              <Input id="name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Ex: Maria" />
+              <Input id="name" value={customerName} list="clientes-nomes"
+                onChange={(e) => { const v = e.target.value; setCustomerName(v); tryMatchCustomer(v, customerPhone); }}
+                placeholder="Ex: Maria" />
+              <datalist id="clientes-nomes">
+                {clientes?.map((c: any) => (
+                  <option key={c.id} value={c.nome} />
+                ))}
+              </datalist>
             </div>
             <div>
               <Label htmlFor="phone">Telefone</Label>
               <Input id="phone" value={customerPhone} list="clientes-telefones"
-                onChange={(e) => { setCustomerPhone(e.target.value); setMatchedClienteId(null); }}
-                onBlur={() => tryMatchCustomer(customerName, customerPhone)} placeholder="(00) 00000-0000" />
+                onChange={(e) => { const v = e.target.value; setCustomerPhone(v); tryMatchCustomer(customerName, v); }}
+                placeholder="(00) 00000-0000" />
               <datalist id="clientes-telefones">
                 {clientes?.filter((c: any) => c.telefone).map((c: any) => (
                   <option key={c.id} value={c.telefone}>{c.nome}</option>
