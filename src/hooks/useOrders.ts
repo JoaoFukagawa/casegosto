@@ -47,13 +47,15 @@ export function useDashboardTodayOrders(startOfDay: string) {
 export function useUpdateOrderStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => updateOrderStatus(id, status),
+    mutationFn: ({ id, status, source }: { id: string; status: string; source?: string | null }) =>
+      updateOrderStatus(id, status, source),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.orders.all });
       qc.invalidateQueries({ queryKey: queryKeys.orders.haver });
       qc.invalidateQueries({ queryKey: queryKeys.dashboard.today });
       toast.success("Status atualizado!");
     },
+    onError: (e: any) => toast.error(e?.message || "Erro ao atualizar status"),
   });
 }
 

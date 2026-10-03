@@ -11,6 +11,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarDays, Truck } from "lucide-react";
 import { useHistoryOrders } from "@/hooks/useOrders";
+import { orderItemName } from "@/lib/order-items";
 
 export default function Historico() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -173,8 +174,8 @@ export default function Historico() {
                       <TableCell className="text-sm text-[var(--color-text-secondary)]">
                         {order.order_items?.map((item: any) =>
                           item.weight
-                            ? `${item.weight}kg ${item.menu_items?.name || "Item"}`
-                            : `${item.quantity}x ${item.menu_items?.name || "Item"}`
+                            ? `${item.weight}kg ${orderItemName(item)}`
+                            : `${item.quantity}x ${orderItemName(item)}`
                         ).join(", ")}
                       </TableCell>
                       <TableCell className="text-sm capitalize">

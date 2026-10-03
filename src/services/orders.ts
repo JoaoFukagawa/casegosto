@@ -62,7 +62,16 @@ export async function getFinanceMonthOrders(monthStart: string, monthEnd: string
   return data;
 }
 
-export async function updateOrderStatus(id: string, status: string) {
+export async function updateOrderStatus(id: string, status: string, source?: string | null) {
+  // Pedido do iFood: a Edge Function avisa o iFood (pronto/despacho) antes de mudar o status aqui.
+  if (source === "ifood") {
+    const { error } = await supabase.functions.invoke("ifood-order-action", { body: { orderId: id, status } });
+    if (error) {
+      const body = await (error as any).context?.json?.().catch(() => null);
+      throw new Error(body?.error || "Não foi possível atualizar o pedido no iFood.");
+    }
+    return;
+  }
   const { error } = await supabase.from("orders").update({ status }).eq("id", id);
   if (error) throw error;
 }

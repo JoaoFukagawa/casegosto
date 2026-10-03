@@ -140,7 +140,7 @@ export default function Dashboard() {
                               ? "bg-[var(--color-success)]"
                               : "bg-[var(--color-accent)]"
                           }`}
-                          onClick={() => updateStatus.mutate({ id: order.id, status: nextStatus[order.status] })}
+                          onClick={() => updateStatus.mutate({ id: order.id, status: nextStatus[order.status], source: order.source })}
                         >
                           {statusLabel[order.status]}
                         </Button>

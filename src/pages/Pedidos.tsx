@@ -14,6 +14,7 @@ import { format, startOfDay as startOfDayFn, endOfDay as endOfDayFn, parseISO } 
 import { toast } from "sonner";
 import { Trash2, Truck, Store, MapPin, Copy, CalendarDays } from "lucide-react";
 import { useOrders, useHaverOrders, useUpdateOrderStatus, useDeleteOrder } from "@/hooks/useOrders";
+import { orderItemName, orderItemOptions } from "@/lib/order-items";
 
 const statuses = ["pendente", "preparando", "pronto", "entregue", "cancelado"];
 
@@ -61,6 +62,11 @@ export default function Pedidos() {
                   🛒 Online
                 </span>
               )}
+              {order.source === "ifood" && (
+                <span className="text-[11px] font-bold uppercase tracking-wide text-white bg-[#EA1D2C] rounded-full px-2 py-0.5">
+                  iFood{order.display_id ? ` #${order.display_id}` : ""}
+                </span>
+              )}
               {order.delivery_time && (
                 <span className="text-sm font-bold text-[var(--color-accent)] bg-[var(--color-accent-muted)] px-2 py-0.5 rounded-md">
                   ⏰ {order.delivery_time.slice(0, 5)}
@@ -75,7 +81,7 @@ export default function Pedidos() {
           <div className="flex items-center gap-3">
             <Select
               value={order.status}
-              onValueChange={(status) => updateStatus.mutate({ id: order.id, status })}
+              onValueChange={(status) => updateStatus.mutate({ id: order.id, status, source: order.source })}
             >
               <SelectTrigger className="w-[140px]">
                 <SelectValue />
@@ -86,18 +92,19 @@ export default function Pedidos() {
                 ))}
               </SelectContent>
             </Select>
-            <EditOrderDialog order={order} />
+            {/* Editar itens de um pedido do iFood desalinharia o pedido com o que o cliente pagou lá */}
+            {order.source !== "ifood" && <EditOrderDialog order={order} />}
             <PrintOrderCoupon order={order} />
             <Button
               variant="ghost"
               size="icon"
               title="Copiar pedido"
               onClick={() => {
-                const items = order.order_items?.map((item: any) =>
-                  item.weight
-                    ? `${item.weight}kg ${item.menu_items?.name || "Item"}`
-                    : `${item.quantity}x ${item.menu_items?.name || "Item"}`
-                ).join("\n") || "";
+                const items = order.order_items?.map((item: any) => {
+                  const line = item.weight ? `${item.weight}kg ${orderItemName(item)}` : `${item.quantity}x ${orderItemName(item)}`;
+                  const options = orderItemOptions(item);
+                  return [line, options && `   + ${options}`, item.notes && `   📝 ${item.notes}`].filter(Boolean).join("\n");
+                }).join("\n") || "";
                 const text = [
                   `📋 *PEDIDO - ${order.customer_name}*`,
                   order.customer_phone ? `📞 ${order.customer_phone}` : "",
@@ -130,13 +137,21 @@ export default function Pedidos() {
       <CardContent>
         <div className="space-y-1.5">
           {order.order_items?.map((item: any) => (
-            <div key={item.id} className="flex items-center justify-between text-sm">
-              <span className="text-[var(--color-text-primary)]">
-                {item.weight
-                  ? `${item.weight}kg ${item.menu_items?.name || "Item"}`
-                  : `${item.quantity}x ${item.menu_items?.name || "Item"}`}
-              </span>
-              <span className="text-[var(--color-text-secondary)]">R$ {(item.weight ? item.unit_price * item.weight : item.unit_price * item.quantity).toFixed(2)}</span>
+            <div key={item.id} className="text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-[var(--color-text-primary)]">
+                  {item.weight
+                    ? `${item.weight}kg ${orderItemName(item)}`
+                    : `${item.quantity}x ${orderItemName(item)}`}
+                </span>
+                <span className="text-[var(--color-text-secondary)]">R$ {(item.weight ? item.unit_price * item.weight : item.unit_price * item.quantity).toFixed(2)}</span>
+              </div>
+              {orderItemOptions(item) && (
+                <p className="pl-4 text-xs text-[var(--color-text-secondary)]">+ {orderItemOptions(item)}</p>
+              )}
+              {item.notes && (
+                <p className="pl-4 text-xs italic text-[var(--color-text-secondary)]">📝 {item.notes}</p>
+              )}
             </div>
           ))}
         </div>
@@ -171,7 +186,7 @@ export default function Pedidos() {
           </p>
         )}
         {order.notes && (
-          <p className="mt-1 text-xs text-[var(--color-text-secondary)] italic">
+          <p className="mt-1 text-xs text-[var(--color-text-secondary)] italic whitespace-pre-line">
             📝 {order.notes}
           </p>
         )}

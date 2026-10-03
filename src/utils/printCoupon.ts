@@ -1,9 +1,14 @@
+import { orderItemName, orderItemOptions } from "@/lib/order-items";
+
 export interface OrderItem {
   id: string;
   quantity: number;
   weight: number | null;
   unit_price: number;
   menu_items: { name: string } | null;
+  item_name?: string | null;
+  notes?: string | null;
+  options?: { name: string; quantity?: number | null }[] | null;
 }
 
 export interface OrderPayment {
@@ -26,9 +31,22 @@ export interface Order {
   total: number;
   notes: string | null;
   delivery_time?: string | null;
+  source?: string | null;
+  display_id?: string | null;
   order_items: OrderItem[];
   order_payments?: OrderPayment[];
 }
+
+// O cupom é HTML escrito num iframe da mesma origem: texto vindo de fora (iFood, cardápio online) precisa ser escapado.
+const esc = (v: unknown) =>
+  String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const escLines = (v: unknown) => esc(v).replace(/\n/g, "<br/>");
 
 export function buildCouponHtml(order: Order): string {
   const items = order.order_items || [];
@@ -45,16 +63,19 @@ export function buildCouponHtml(order: Order): string {
 
   const itemsHtml = items
     .map((item) => {
-      const name = item.menu_items?.name || "Item";
+      const name = esc(orderItemName(item));
       const qty = item.weight ? `${item.weight}kg` : `${item.quantity}x`;
       const subtotal = item.weight
         ? item.unit_price * item.weight
         : item.unit_price * item.quantity;
+      const options = orderItemOptions(item);
       return `
         <tr>
           <td style="text-align:left;padding:2px 0;">${qty} ${name}</td>
           <td style="text-align:right;padding:2px 0;">R$ ${subtotal.toFixed(2)}</td>
-        </tr>`;
+        </tr>
+        ${options ? `<tr><td colspan="2" style="text-align:left;padding:0 0 2px 10px;font-size:11px;">+ ${esc(options)}</td></tr>` : ""}
+        ${item.notes ? `<tr><td colspan="2" style="text-align:left;padding:0 0 2px 10px;font-size:11px;font-style:italic;">OBS: ${esc(item.notes)}</td></tr>` : ""}`;
     })
     .join("");
 
@@ -63,7 +84,7 @@ export function buildCouponHtml(order: Order): string {
     <html>
     <head>
       <meta charset="utf-8"/>
-      <title>Cupom - ${order.customer_name}</title>
+      <title>Cupom - ${esc(order.customer_name)}</title>
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -117,16 +138,17 @@ export function buildCouponHtml(order: Order): string {
         ${formattedDate} · ${formattedTime}
       </div>
       <div class="divider"></div>
+      ${order.source === "ifood" ? `<div class="center bold" style="font-size:14px;">PEDIDO IFOOD${order.display_id ? ` #${esc(order.display_id)}` : ""}</div>` : ""}
 
       <div class="bold" style="font-size:14px;margin:4px 0;">
-        ${order.customer_name}
+        ${esc(order.customer_name)}
       </div>
-      ${order.customer_phone ? `<div class="info">📞 ${order.customer_phone}</div>` : ""}
+      ${order.customer_phone ? `<div class="info">📞 ${esc(order.customer_phone)}</div>` : ""}
       <div class="info">
         ${order.delivery_type === "entrega" ? "🚚 ENTREGA" : "🏪 RETIRADA"}
       </div>
-      ${order.delivery_time ? `<div class="info bold" style="font-size:14px;">⏰ HORÁRIO: ${order.delivery_time.slice(0, 5)}</div>` : ""}
-      ${order.delivery_type === "entrega" && order.delivery_address ? `<div class="info">📍 ${order.delivery_address}</div>` : ""}
+      ${order.delivery_time ? `<div class="info bold" style="font-size:14px;">⏰ HORÁRIO: ${esc(order.delivery_time.slice(0, 5))}</div>` : ""}
+      ${order.delivery_type === "entrega" && order.delivery_address ? `<div class="info">📍 ${esc(order.delivery_address)}</div>` : ""}
 
       <div class="divider"></div>
 
@@ -171,7 +193,7 @@ export function buildCouponHtml(order: Order): string {
                 .map(
                   (p) => `
                 <tr>
-                  <td style="text-align:left;">${paymentLabel[p.method_value] || p.method_label || p.method_value}</td>
+                  <td style="text-align:left;">${esc(paymentLabel[p.method_value] || p.method_label || p.method_value)}</td>
                   <td style="text-align:right;">R$ ${Number(p.amount).toFixed(2)}</td>
                 </tr>`
                 )
@@ -186,12 +208,12 @@ export function buildCouponHtml(order: Order): string {
               }
             </table>
           `
-          : `<div class="info bold">💳 ${paymentLabel[order.payment_method] || order.payment_method}</div>`
+          : `<div class="info bold">💳 ${esc(paymentLabel[order.payment_method] || order.payment_method)}</div>`
       }
 
       ${order.notes ? `
         <div class="divider"></div>
-        <div class="notes">📝 OBS: ${order.notes}</div>
+        <div class="notes">📝 OBS: ${escLines(order.notes)}</div>
       ` : ""}
 
       <div class="divider"></div>
