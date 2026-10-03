@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -17,12 +17,20 @@ import { useActiveMenuItems } from "@/hooks/useMenuItems";
 import { useActivePaymentMethods } from "@/hooks/usePaymentMethods";
 import { useClients } from "@/hooks/useClients";
 import { queryKeys } from "@/lib/query-keys";
+import { formatPhoneBR, isCompletePhone, phoneContains, samePhone } from "@/lib/phone";
+
+const normalizeText = (s: string | null | undefined) =>
+  (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+
+const formatAddress = (c: any) =>
+  [c.rua, c.numero, c.bairro, c.complemento].filter(Boolean).join(", ");
 
 export default function NewOrderDialog() {
   const [open, setOpen] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [matchedClienteId, setMatchedClienteId] = useState<string | null>(null);
+  const [suggestFor, setSuggestFor] = useState<"name" | "phone" | null>(null);
   const [pratoDoDia, setPratoDoDia] = useState("");
   const [notes, setNotes] = useState("");
   const [deliveryType, setDeliveryType] = useState("retirada");
@@ -55,27 +63,41 @@ export default function NewOrderDialog() {
     },
   });
 
+  const selectCliente = (c: any) => {
+    setMatchedClienteId(c.id);
+    setCustomerName(c.nome || "");
+    setCustomerPhone(formatPhoneBR(c.telefone));
+    setDeliveryAddress(formatAddress(c));
+    setSuggestFor(null);
+  };
+
+  // Reconhece o cliente sozinho quando o nome bate exatamente ou o telefone est\u00e1 completo;
+  // o campo digitado fica como est\u00e1 e os outros v\u00eam do cadastro.
   const tryMatchCustomer = (name: string, phone: string, source: "name" | "phone") => {
     if (!clientes) return;
-    const normalized = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-    const nameNorm = normalized(name);
-    const phoneDigits = phone.replace(/\D/g, "");
-    const match = clientes.find((c: any) =>
-      source === "name"
-        ? nameNorm.length > 0 && normalized(c.nome) === nameNorm
-        : phoneDigits.length >= 8 && c.telefone?.replace(/\D/g, "").endsWith(phoneDigits.slice(-8))
-    );
-    if (match) {
-      setMatchedClienteId(match.id);
-      // O campo que disparou o match (nome ou telefone) j\u00e1 est\u00e1 correto por defini\u00e7\u00e3o;
-      // os outros dois (incluindo o que a origem N\u00c3O \u00e9) sempre s\u00e3o corrigidos pro cadastro.
-      if (source === "phone" && match.nome) setCustomerName(match.nome);
-      if (source === "name" && match.telefone) setCustomerPhone(match.telefone);
-      setDeliveryAddress(match.rua ? [match.rua, match.numero, match.bairro, match.complemento].filter(Boolean).join(", ") : "");
-    } else {
-      setMatchedClienteId(null);
-    }
+    const nameNorm = normalizeText(name);
+    const match = source === "name"
+      ? nameNorm && clientes.find((c: any) => normalizeText(c.nome) === nameNorm)
+      : isCompletePhone(phone) && clientes.find((c: any) => samePhone(c.telefone, phone));
+    if (!match) { setMatchedClienteId(null); return; }
+    setMatchedClienteId(match.id);
+    if (source === "phone") setCustomerName(match.nome || "");
+    else if (match.telefone) setCustomerPhone(formatPhoneBR(match.telefone));
+    setDeliveryAddress(formatAddress(match));
   };
+
+  const suggestions = useMemo(() => {
+    if (!clientes || !suggestFor) return [];
+    let list: any[];
+    if (suggestFor === "phone") {
+      list = clientes.filter((c: any) => phoneContains(c.telefone, customerPhone));
+    } else {
+      const q = normalizeText(customerName);
+      if (q.length < 2) return [];
+      list = clientes.filter((c: any) => normalizeText(c.nome).includes(q));
+    }
+    return list.filter((c: any) => c.id !== matchedClienteId).slice(0, 6);
+  }, [clientes, suggestFor, customerPhone, customerName, matchedClienteId]);
 
   const saveAsNewCliente = useMutation({
     mutationFn: async () => {
@@ -231,29 +253,38 @@ export default function NewOrderDialog() {
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="name">Nome do cliente *</Label>
-              <Input id="name" value={customerName} list="clientes-nomes"
-                onChange={(e) => { const v = e.target.value; setCustomerName(v); tryMatchCustomer(v, customerPhone, "name"); }}
-                placeholder="Ex: Maria" />
-              <datalist id="clientes-nomes">
-                {clientes?.map((c: any) => (
-                  <option key={c.id} value={c.nome} />
-                ))}
-              </datalist>
+          <div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="name">Nome do cliente *</Label>
+                <Input id="name" value={customerName} autoComplete="off"
+                  onFocus={() => setSuggestFor("name")} onBlur={() => setSuggestFor(null)}
+                  onChange={(e) => { const v = e.target.value; setCustomerName(v); setSuggestFor("name"); tryMatchCustomer(v, customerPhone, "name"); }}
+                  placeholder="Ex: Maria" />
+              </div>
+              <div>
+                <Label htmlFor="phone">Telefone</Label>
+                <Input id="phone" value={customerPhone} inputMode="tel" autoComplete="off"
+                  onFocus={() => setSuggestFor("phone")} onBlur={() => setSuggestFor(null)}
+                  onChange={(e) => { const v = formatPhoneBR(e.target.value); setCustomerPhone(v); setSuggestFor("phone"); tryMatchCustomer(customerName, v, "phone"); }}
+                  placeholder="(00) 00000-0000" />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="phone">Telefone</Label>
-              <Input id="phone" value={customerPhone} list="clientes-telefones"
-                onChange={(e) => { const v = e.target.value; setCustomerPhone(v); tryMatchCustomer(customerName, v, "phone"); }}
-                placeholder="(00) 00000-0000" />
-              <datalist id="clientes-telefones">
-                {clientes?.filter((c: any) => c.telefone).map((c: any) => (
-                  <option key={c.id} value={c.telefone}>{c.nome}</option>
+            {suggestions.length > 0 && (
+              <div className="mt-1 overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-md">
+                {suggestions.map((c: any) => (
+                  // preventDefault no mousedown mantém o foco no campo, senão o blur esconde a lista antes do clique
+                  <button key={c.id} type="button"
+                    onMouseDown={(e) => e.preventDefault()} onClick={() => selectCliente(c)}
+                    className="block w-full border-b border-[var(--color-border)] px-3 py-2 text-left last:border-b-0 hover:bg-muted">
+                    <p className="text-sm font-medium text-foreground">{c.nome}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {[formatPhoneBR(c.telefone), formatAddress(c)].filter(Boolean).join(" · ") || "Sem telefone/endereço"}
+                    </p>
+                  </button>
                 ))}
-              </datalist>
-            </div>
+              </div>
+            )}
           </div>
 
           {customerName.trim() && (

@@ -10,6 +10,7 @@ import SearchInput from "@/components/SearchInput";
 import EmptyState from "@/components/EmptyState";
 import { Plus, Pencil, Trash2, MapPin, Phone } from "lucide-react";
 import { useClients, useSaveClient, useDeleteClient } from "@/hooks/useClients";
+import { formatPhoneBR, phoneContains } from "@/lib/phone";
 
 type Cliente = {
   id: string;
@@ -47,7 +48,7 @@ export default function Clientes() {
   const filtered = (clientes || []).filter((c) => {
     if (!search.trim()) return true;
     const s = search.toLowerCase();
-    return c.nome.toLowerCase().includes(s) || (c.telefone || "").toLowerCase().includes(s);
+    return c.nome.toLowerCase().includes(s) || phoneContains(c.telefone, search);
   });
 
   const openNew = () => { setForm(emptyForm); setOpen(true); };
@@ -55,7 +56,7 @@ export default function Clientes() {
     setForm({
       id: c.id,
       nome: c.nome,
-      telefone: c.telefone || "",
+      telefone: formatPhoneBR(c.telefone),
       rua: c.rua || "",
       numero: c.numero || "",
       bairro: c.bairro || "",
@@ -88,7 +89,7 @@ export default function Clientes() {
                 </div>
                 <div>
                   <Label>Telefone / WhatsApp</Label>
-                  <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} placeholder="(00) 00000-0000" />
+                  <Input value={form.telefone} inputMode="tel" onChange={(e) => setForm({ ...form, telefone: formatPhoneBR(e.target.value) })} placeholder="(00) 00000-0000" />
                 </div>
                 <div className="grid grid-cols-[1fr_100px] gap-3">
                   <div>
@@ -144,7 +145,7 @@ export default function Clientes() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-1 text-sm text-[var(--color-text-secondary)]">
-                {c.telefone && <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5" /> {c.telefone}</p>}
+                {c.telefone && <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5" /> {formatPhoneBR(c.telefone)}</p>}
                 {(c.rua || c.bairro) && (
                   <p className="flex items-start gap-2">
                     <MapPin className="h-3.5 w-3.5 mt-0.5" />
