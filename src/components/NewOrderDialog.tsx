@@ -55,22 +55,26 @@ export default function NewOrderDialog() {
     },
   });
 
-  const tryMatchCustomer = (name: string, phone: string) => {
+  const tryMatchCustomer = (name: string, phone: string, source: "name" | "phone") => {
     if (!clientes) return;
     const normalized = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
     const nameNorm = normalized(name);
     const phoneDigits = phone.replace(/\D/g, "");
-    const match = clientes.find(
-      (c: any) =>
-        (nameNorm.length > 0 && normalized(c.nome) === nameNorm) ||
-        (phoneDigits.length >= 8 && c.telefone?.replace(/\D/g, "").endsWith(phoneDigits.slice(-8)))
+    const match = clientes.find((c: any) =>
+      source === "name"
+        ? nameNorm.length > 0 && normalized(c.nome) === nameNorm
+        : phoneDigits.length >= 8 && c.telefone?.replace(/\D/g, "").endsWith(phoneDigits.slice(-8))
     );
     if (match) {
       setMatchedClienteId(match.id);
-      if (match.nome && !name.trim()) setCustomerName(match.nome);
-      if (match.telefone && !phone.trim()) setCustomerPhone(match.telefone);
-      if (match.rua) setDeliveryAddress([match.rua, match.numero, match.bairro, match.complemento].filter(Boolean).join(", "));
-    } else setMatchedClienteId(null);
+      // O campo que disparou o match (nome ou telefone) j\u00e1 est\u00e1 correto por defini\u00e7\u00e3o;
+      // os outros dois (incluindo o que a origem N\u00c3O \u00e9) sempre s\u00e3o corrigidos pro cadastro.
+      if (source === "phone" && match.nome) setCustomerName(match.nome);
+      if (source === "name" && match.telefone) setCustomerPhone(match.telefone);
+      setDeliveryAddress(match.rua ? [match.rua, match.numero, match.bairro, match.complemento].filter(Boolean).join(", ") : "");
+    } else {
+      setMatchedClienteId(null);
+    }
   };
 
   const saveAsNewCliente = useMutation({
@@ -231,7 +235,7 @@ export default function NewOrderDialog() {
             <div>
               <Label htmlFor="name">Nome do cliente *</Label>
               <Input id="name" value={customerName} list="clientes-nomes"
-                onChange={(e) => { const v = e.target.value; setCustomerName(v); tryMatchCustomer(v, customerPhone); }}
+                onChange={(e) => { const v = e.target.value; setCustomerName(v); tryMatchCustomer(v, customerPhone, "name"); }}
                 placeholder="Ex: Maria" />
               <datalist id="clientes-nomes">
                 {clientes?.map((c: any) => (
@@ -242,7 +246,7 @@ export default function NewOrderDialog() {
             <div>
               <Label htmlFor="phone">Telefone</Label>
               <Input id="phone" value={customerPhone} list="clientes-telefones"
-                onChange={(e) => { const v = e.target.value; setCustomerPhone(v); tryMatchCustomer(customerName, v); }}
+                onChange={(e) => { const v = e.target.value; setCustomerPhone(v); tryMatchCustomer(customerName, v, "phone"); }}
                 placeholder="(00) 00000-0000" />
               <datalist id="clientes-telefones">
                 {clientes?.filter((c: any) => c.telefone).map((c: any) => (
