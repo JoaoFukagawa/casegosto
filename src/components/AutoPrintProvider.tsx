@@ -16,7 +16,7 @@ export function AutoPrintProvider({ children }: { children: React.ReactNode }) {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
   const { data: orders } = useDashboardTodayOrders(startOfDay.toISOString());
-  const value = useAutoPrint((orders || []) as any);
+  const value = useAutoPrint(orders as any);
   return <AutoPrintContext.Provider value={value}>{children}</AutoPrintContext.Provider>;
 }
 

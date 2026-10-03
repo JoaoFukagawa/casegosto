@@ -17,8 +17,8 @@ function loadSeen(): Record<string, string[]> {
   }
 }
 
-export function useAutoPrint(orders: Order[]) {
-  const [enabled, setEnabled] = useState<boolean>(() => localStorage.getItem(STORAGE_ENABLED) !== "off");
+export function useAutoPrint(orders: Order[] | undefined) {
+  const [enabled, setEnabled] = useState<boolean>(() => localStorage.getItem(STORAGE_ENABLED) === "on");
   const initializedRef = useRef(false);
 
   useEffect(() => {
@@ -26,7 +26,10 @@ export function useAutoPrint(orders: Order[]) {
   }, [enabled]);
 
   useEffect(() => {
-    if (!enabled) return;
+    // Ao (re)ligar, os pedidos que já existem são marcados como vistos em vez de impressos.
+    if (!enabled) { initializedRef.current = false; return; }
+    // Espera os pedidos carregarem: inicializar com a lista vazia faria imprimir o dia inteiro.
+    if (!orders) return;
 
     const seenMap = loadSeen();
     const key = todayKey();
